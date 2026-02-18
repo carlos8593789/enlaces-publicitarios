@@ -1,0 +1,82 @@
+<div class="container-fluid">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="mb-1">Pizarra Remisiones</h2>
+      <p class="text-muted mb-0">Listado de remisiones registradas.</p>
+    </div>
+    <button class="btn btn-outline-primary" type="button" (click)="fetchRemisiones()">
+      Recargar
+    </button>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div *ngIf="isLoading" class="alert alert-info">Cargando remisiones...</div>
+      <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Número</th>
+              <th>Cliente</th>
+              <th>Usuario</th>
+              <th>Estatus</th>
+              <th>Fecha de alta</th>
+              <th>Pedido</th>
+              <th>Total</th>
+              <th>QR</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let remision of remisiones">
+              <td>{{ remision.id }}</td>
+              <td>{{ remision.numero }}</td>
+              <td>{{ remision.pedido.cliente.nombre }}</td>
+              <td>{{ remision.usuario.nombre }}</td>
+              <td>
+                <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
+                  {{ remision.estatus_remision }}
+                </span>
+              </td>
+              <td>{{ remision.fecha_alta | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ remision.id_pedido }}</td>
+              <td>${{ remision.total }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  (click)="openQrModal(remision.pedido.cliente.id, remision.id_pedido)"
+                >
+                  QR
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="!isLoading && !errorMessage && remisiones.length === 0">
+              <td colspan="13" class="text-center text-muted">Sin datos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="qrModalOpen" class="modal fade show d-block" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">QR de acceso</h5>
+        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeQrModal()"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img *ngIf="qrImageUrl" [src]="qrImageUrl" alt="QR" class="qr-image" />
+        <p class="text-muted small mt-3 mb-0">{{ qrTargetUrl }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeQrModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="qrModalOpen" class="modal-backdrop fade show"></div>

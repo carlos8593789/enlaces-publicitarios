@@ -1,0 +1,47 @@
+<div class="d-flex min-vh-100 bg-light">
+  <div class="flex-grow-1 d-flex flex-column">
+    <app-client-header
+      *ngIf="!isFullscreen"
+      [isFullscreen]="isFullscreen"
+      (toggleMenu)="toggleMenu()"
+      (toggleFullscreen)="toggleFullscreen()"
+    ></app-client-header>
+
+    <div
+      class="offcanvas offcanvas-start client-offcanvas"
+      [class.show]="isMenuOpen"
+      [style.visibility]="isMenuOpen ? 'visible' : 'hidden'"
+      tabindex="-1"
+      aria-labelledby="clientMenuLabel"
+      *ngIf="!isFullscreen"
+    >
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="clientMenuLabel">Menú cliente</h5>
+        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeMenu()"></button>
+      </div>
+      <div class="offcanvas-body p-0">
+        <app-client-sidebar [collapsed]="false"></app-client-sidebar>
+      </div>
+    </div>
+
+    <div
+      *ngIf="isMenuOpen && !isFullscreen"
+      class="offcanvas-backdrop fade show"
+      (click)="closeMenu()"
+    ></div>
+
+    <main class="flex-grow-1 p-3">
+      <button
+        *ngIf="isFullscreen"
+        type="button"
+        class="btn btn-primary fullscreen-exit"
+        (click)="toggleFullscreen()"
+      >
+        Salir pantalla completa
+      </button>
+      <router-outlet></router-outlet>
+    </main>
+
+    <app-client-footer *ngIf="!isFullscreen"></app-client-footer>
+  </div>
+</div>

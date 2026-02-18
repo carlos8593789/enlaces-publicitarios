@@ -1,0 +1,20 @@
+<nav class="sidebar bg-primary text-white" [class.collapsed]="collapsed">
+  <div class="sidebar-brand px-3 py-3 fw-semibold">
+    <span class="brand-text">Panel</span>
+  </div>
+
+  <ul class="nav nav-pills flex-column gap-1 px-2">
+    <li class="nav-item">
+      <a class="nav-link text-white" routerLink="/admin/dashboard" routerLinkActive="active">
+        <span class="me-2">🏠</span>
+        <span class="link-text">Dashboard</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link text-white" routerLink="/admin/pizarra-remisiones" routerLinkActive="active">
+        <span class="me-2">📋</span>
+        <span class="link-text">Pizarra Remisiones</span>
+      </a>
+    </li>
+  </ul>
+</nav>

@@ -1,0 +1,10 @@
+main {
+  min-height: 0;
+}
+
+.fullscreen-exit {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1050;
+}

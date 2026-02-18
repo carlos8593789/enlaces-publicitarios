@@ -1,0 +1,25 @@
+.sidebar {
+  width: 240px;
+  transition: width 0.2s ease-in-out;
+  min-height: 100vh;
+}
+
+.sidebar.collapsed {
+  width: 72px;
+}
+
+.sidebar .link-text,
+.sidebar .brand-text {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.sidebar.collapsed .link-text,
+.sidebar.collapsed .brand-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+}

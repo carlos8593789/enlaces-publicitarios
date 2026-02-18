@@ -1,0 +1,56 @@
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.signature-pad {
+  width: 100%;
+  height: 220px;
+  position: relative;
+}
+
+.signature-pad canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.signature-preview {
+  max-width: 280px;
+  width: 100%;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+}
+
+.product-image-wrapper {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.qr-image {
+  width: 220px;
+  height: 220px;
+}

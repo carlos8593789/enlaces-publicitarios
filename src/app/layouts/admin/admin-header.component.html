@@ -1,0 +1,21 @@
+<nav class="navbar navbar-dark bg-primary px-3">
+  <div class="d-flex align-items-center gap-2">
+    <button class="navbar-toggler" type="button" (click)="toggleSidebar.emit()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand mb-0 h1" routerLink="/admin/dashboard">Admin Panel</a>
+    <button
+      *ngIf="!isFullscreen"
+      class="btn btn-outline-light btn-sm"
+      type="button"
+      (click)="toggleFullscreen.emit()"
+    >
+      Pantalla completa
+    </button>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-white small">Sesión activa</span>
+    <button class="btn btn-outline-light btn-sm" type="button" (click)="logout()">Salir</button>
+  </div>
+</nav>

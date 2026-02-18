@@ -1,0 +1,25 @@
+<nav class="sidebar bg-primary text-white" [class.collapsed]="collapsed">
+  <div class="sidebar-brand px-3 py-3 fw-semibold">
+    <span class="brand-text">Cliente</span>
+  </div>
+
+  <ul class="nav nav-pills flex-column gap-1 px-2">
+    <li class="nav-item">
+      <a
+        class="nav-link text-white"
+        routerLink="/cliente"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <span class="me-2">📷</span>
+        <span class="link-text">Lector QR</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link text-white" routerLink="/cliente/procesar" routerLinkActive="active">
+        <span class="me-2">✅</span>
+        <span class="link-text">Procesar QR</span>
+      </a>
+    </li>
+  </ul>
+</nav>

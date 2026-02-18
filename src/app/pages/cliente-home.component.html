@@ -1,0 +1,36 @@
+<section class="container py-3">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Lector de QR</h2>
+      <p class="text-muted mb-3">Apunta la cámara al código QR para procesarlo.</p>
+
+      <div class="ratio ratio-4x3 rounded overflow-hidden border bg-dark">
+        <video #video class="w-100 h-100" autoplay playsinline muted></video>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="startScan()"
+          [disabled]="isScanning"
+        >
+          Iniciar escaneo
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          (click)="stopScan()"
+          [disabled]="!isScanning"
+        >
+          Detener
+        </button>
+        <button type="button" class="btn btn-outline-primary" (click)="simulateScan()">
+          Simular lectura
+        </button>
+      </div>
+
+      <p *ngIf="errorMessage" class="text-danger small mt-3">{{ errorMessage }}</p>
+    </div>
+  </div>
+</section>
