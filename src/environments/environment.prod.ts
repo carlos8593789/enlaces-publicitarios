@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'http://127.0.0.1:8000',
-  apiEnlacesUrl: 'http://localhost/enlacespublicitarios'
+  apiBaseUrl: 'https://api.enlacespublicitarios.com.mx',
+  apiEnlacesUrl: 'https://enlacespublicitarios.com.mx'
 };

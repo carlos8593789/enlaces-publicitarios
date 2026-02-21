@@ -56,6 +56,15 @@
               ],
               "outputHashing": "all"
             },
+            "qa": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.qa.ts"
+                }
+              ],
+              "outputHashing": "all"
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
@@ -69,6 +78,9 @@
           "configurations": {
             "production": {
               "buildTarget": "enlaces-publicitarios:build:production"
+            },
+            "qa": {
+              "buildTarget": "enlaces-publicitarios:build:qa"
             },
             "development": {
               "buildTarget": "enlaces-publicitarios:build:development"
