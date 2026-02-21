@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, catchError, of } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ export class AuthService {
   private readonly tokenTypeKey = 'auth_token_type';
   private readonly expiresKey = 'auth_expires_at';
   private readonly roleKey = 'auth_role';
-  private readonly loginUrl = 'http://127.0.0.1:8000/api/auth/login';
+  private readonly loginUrl = `${environment.apiBaseUrl}/api/auth/login`;
 
   constructor(private readonly http: HttpClient) {}
 

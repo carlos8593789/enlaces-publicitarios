@@ -5,6 +5,7 @@ import { Subscription, catchError, map, of, switchMap, timer } from 'rxjs';
 
 import { Remision } from '../../models/remision.model';
 import { AuthService } from '../../auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-pizarra-remisiones',
@@ -14,8 +15,8 @@ import { AuthService } from '../../auth/auth.service';
   styleUrl: './pizarra-remisiones.component.scss'
 })
 export class PizarraRemisionesComponent implements OnInit, OnDestroy {
-  private readonly apiUrl = 'http://127.0.0.1:8000/api/remisiones';
-  private readonly congelarUrl = 'http://127.0.0.1:8000/api/remisiones/congelar';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/remisiones`;
+  private readonly congelarUrl = `${environment.apiBaseUrl}/api/remisiones/congelar`;
   private readonly pollingIntervalMs = 30000;
   private pollingSub?: Subscription;
   private since: number | null = null;

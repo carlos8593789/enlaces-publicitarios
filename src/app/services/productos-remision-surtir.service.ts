@@ -3,12 +3,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 
 import { ProductosRemisionSurtirResponse } from '../models/productos-remision-surtir.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductosRemisionSurtirService {
-  private readonly apiUrl = 'http://127.0.0.1:8000/api/productos-remision-surtir';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/productos-remision-surtir`;
 
   constructor(private readonly http: HttpClient) {}
 

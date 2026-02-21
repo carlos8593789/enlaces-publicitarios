@@ -16,6 +16,7 @@ import {
 import { ProductosRemisionSurtirService } from '../services/productos-remision-surtir.service';
 import { AuthService } from '../auth/auth.service';
 import { ConfirmModalComponent } from '../shared/confirm-modal.component';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-cliente-qr-procesar',
@@ -34,9 +35,9 @@ export class ClienteQrProcesarComponent {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
 
-  private readonly entregaUrl = 'http://localhost/enlacespublicitarios/api/MultipleEntrega';
-  private readonly surtirUrl = 'http://127.0.0.1:8000/api/remisiones/surtir';
-  private readonly imagenHost = 'https://enlacespublicitarios.com.mx/images/productos';
+  private readonly entregaUrl = `${environment.apiEnlacesUrl}/api/MultipleEntrega`;
+  private readonly surtirUrl = `${environment.apiBaseUrl}/api/remisiones/surtir`;
+  private readonly imagenHost = `${environment.apiEnlacesUrl}/images/productos`;
 
   idCliente: number | null = null;
   cliente: ClienteDetalle | null = null;

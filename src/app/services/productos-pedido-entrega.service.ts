@@ -3,12 +3,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 
 import { ProductosPedidoEntregaResponse } from '../models/producto-pedido-entrega.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductosPedidoEntregaService {
-  private readonly apiUrl = 'http://127.0.0.1:8000/api/productos-pedido-entrega';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/productos-pedido-entrega`;
 
   constructor(private readonly http: HttpClient) {}
 
