@@ -17,6 +17,7 @@ export interface RemisionSurtirItem {
   detalles: RemisionSurtirDetalle[];
   estatus_remision: string;
   estatus_resurtida: string;
+  estatus: number;
 }
 
 export interface ProductosRemisionSurtirResponse {

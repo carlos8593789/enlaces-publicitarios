@@ -20,17 +20,18 @@ export const routes: Routes = [
 		children: [
 			{ path: 'dashboard', component: DashboardComponent },
 			{ path: 'pizarra-remisiones', component: PizarraRemisionesComponent },
-			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
+			{ path: '', pathMatch: 'full', redirectTo: 'pizarra-remisiones' }
 		]
 	},
 	{
-		path: 'cliente',
+		path: 'app',
 		component: ClientLayoutComponent,
 		canActivate: [authGuard, roleGuard],
 		data: { role: 'admin' },
 		children: [
-			{ path: '', component: ClienteHomeComponent },
-			{ path: 'procesar', component: ClienteQrProcesarComponent }
+			{ path: 'leer-qr', component: ClienteHomeComponent },
+			{ path: 'entregar', component: ClienteQrProcesarComponent },
+			{ path: '', pathMatch: 'full', redirectTo: 'leer-qr' }
 		]
 	},
 	{ path: '', pathMatch: 'full', redirectTo: 'admin' },

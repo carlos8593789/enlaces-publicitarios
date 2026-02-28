@@ -1,18 +1,13 @@
 <section class="container py-3">
   <div class="card shadow-sm">
     <div class="card-body">
-      <h2 class="h5 mb-3">Procesamiento de QR</h2>
-      <p class="text-muted mb-3">ID recibido: <strong>{{ idCliente ?? 'Sin datos' }}</strong></p>
+      <h2 class="h5 mb-3">Entregar</h2>
 
       <div *ngIf="isLoading" class="alert alert-info">Cargando cliente...</div>
       <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
       <div *ngIf="cliente" class="mt-2">
         <ul class="list-group">
-          <li class="list-group-item d-flex justify-content-between">
-            <span>ID</span>
-            <strong>{{ cliente.id }}</strong>
-          </li>
           <li class="list-group-item d-flex justify-content-between">
             <span>Nombre</span>
             <strong>{{ cliente.nombre }}</strong>
@@ -41,8 +36,9 @@
           <div class="card-header d-flex flex-wrap gap-3 align-items-center">
             <span class="fw-semibold">Remision #{{ remision.id }}</span>
             <span class="text-muted">Pedido: {{ remision.id_pedido }}</span>
-            <span class="text-muted">Estatus: {{ remision.estatus_remision }}</span>
-            <span class="text-muted">Resurtido: {{ remision.estatus_resurtida }}</span>
+            <span class="text-muted">Estatus: <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
+                  {{ remision.estatus_remision }}
+                </span></span>
           </div>
           <div class="card-body">
             <div *ngIf="remision.detalles.length === 0" class="text-muted">Sin detalles.</div>
@@ -88,14 +84,14 @@
       </div>
 
       <div *ngIf="remisionSurtir.length === 0">
-        <h3 class="h6 mb-3">Pedidos del cliente</h3>
+        <h3 class="h6 mb-3">Productos del cliente</h3>
         <div *ngIf="pedidosLoading" class="alert alert-info">Cargando pedidos...</div>
         <div *ngIf="pedidosError" class="alert alert-danger">{{ pedidosError }}</div>
         <div *ngIf="entregaError" class="alert alert-danger">{{ entregaError }}</div>
         <div *ngIf="entregaSuccess" class="alert alert-success">{{ entregaSuccess }}</div>
 
         <div *ngIf="!pedidosLoading && !pedidosError && pedidos.length === 0" class="alert alert-secondary">
-          No hay pedidos para este cliente.
+          No hay productos para este cliente.
         </div>
 
         <div *ngFor="let pedido of pedidos" class="card mb-3">

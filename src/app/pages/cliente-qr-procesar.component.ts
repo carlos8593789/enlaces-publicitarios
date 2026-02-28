@@ -73,10 +73,11 @@ export class ClienteQrProcesarComponent {
       id_pedido: number;
       productos_entrega: Array<{
         id_producto: number;
-        color: string;
-        cantidad: number;
+        colores: Array<{
+          color: string;
+          cantidad: number;
+        }>;
       }>;
-      archivo: number;
     }>;
   } | null = null;
   entregaError = '';
@@ -117,7 +118,6 @@ export class ClienteQrProcesarComponent {
     });
 
     this.fetchRemisionSurtir();
-    this.fetchPedidos();
   }
 
   private fetchPedidos(): void {
@@ -154,10 +154,21 @@ export class ClienteQrProcesarComponent {
       next: (response: ProductosRemisionSurtirResponse) => {
         this.remisionSurtir = Array.isArray(response?.data) ? response.data : [];
         this.remisionSurtirLoading = false;
+
+        if (this.remisionSurtir.length === 0) {
+          this.fetchPedidos();
+          return;
+        }
+
+        this.pedidos = [];
+        this.pedidosLoading = false;
+        this.pedidosError = '';
       },
       error: () => {
         this.remisionSurtirError = 'No se pudieron cargar las remisiones a surtir.';
         this.remisionSurtirLoading = false;
+        this.pedidos = [];
+        this.pedidosLoading = false;
       }
     });
   }
@@ -219,15 +230,52 @@ export class ClienteQrProcesarComponent {
     }
 
     const payload = {
-      pedidos: this.pedidos.map((pedido) => ({
-        id_pedido: pedido.id,
-        productos_entrega: pedido.detalles.map((detalle) => ({
-          id_producto: detalle.id,
-          color: detalle.color_producto,
-          cantidad: detalle.cantidad_remisionada
-        })),
-        archivo: 1
-      }))
+      pedidos: this.pedidos.map((pedido) => {
+        const productosMap = new Map<
+          number,
+          {
+            id_producto: number;
+            coloresMap: Map<string, number>;
+          }
+        >();
+
+        pedido.detalles.forEach((detalle) => {
+          const idProducto = Number(detalle.id);
+          const color = (detalle.color_producto ?? '').trim();
+          const cantidad = Number(detalle.cantidad_remisionada ?? 0);
+
+          if (!Number.isFinite(idProducto) || !color || !Number.isFinite(cantidad) || cantidad <= 0) {
+            return;
+          }
+
+          const productoActual = productosMap.get(idProducto);
+          if (!productoActual) {
+            productosMap.set(idProducto, {
+              id_producto: idProducto,
+              coloresMap: new Map<string, number>([[color, cantidad]])
+            });
+            return;
+          }
+
+          const acumulado = productoActual.coloresMap.get(color) ?? 0;
+          productoActual.coloresMap.set(color, acumulado + cantidad);
+        });
+
+        const productosEntrega = Array.from(productosMap.values())
+          .map((producto) => ({
+            id_producto: producto.id_producto,
+            colores: Array.from(producto.coloresMap.entries()).map(([color, cantidad]) => ({
+              color,
+              cantidad
+            }))
+          }))
+          .filter((producto) => producto.colores.length > 0);
+
+        return {
+          id_pedido: pedido.id,
+          productos_entrega: productosEntrega
+        };
+      })
     };
 
     this.pendingEntregaPayload = payload;

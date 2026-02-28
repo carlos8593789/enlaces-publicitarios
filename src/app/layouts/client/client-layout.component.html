@@ -8,7 +8,7 @@
     ></app-client-header>
 
     <div
-      class="offcanvas offcanvas-start client-offcanvas"
+      class="offcanvas offcanvas-start client-offcanvas bg-primary"
       [class.show]="isMenuOpen"
       [style.visibility]="isMenuOpen ? 'visible' : 'hidden'"
       tabindex="-1"
@@ -16,7 +16,7 @@
       *ngIf="!isFullscreen"
     >
       <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="clientMenuLabel">Menú cliente</h5>
+        <h5 class="offcanvas-title" id="clientMenuLabel">App Enlaces</h5>
         <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeMenu()"></button>
       </div>
       <div class="offcanvas-body p-0">
@@ -31,14 +31,14 @@
     ></div>
 
     <main class="flex-grow-1 p-3">
-      <button
+      <!-- <button
         *ngIf="isFullscreen"
         type="button"
         class="btn btn-primary fullscreen-exit"
         (click)="toggleFullscreen()"
       >
         Salir pantalla completa
-      </button>
+      </button> -->
       <router-outlet></router-outlet>
     </main>
 

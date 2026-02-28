@@ -110,7 +110,7 @@ export class PizarraRemisionesComponent implements OnInit, OnDestroy {
       return;
     }
     const origin = window.location.origin;
-    this.qrTargetUrl = `${origin}/cliente/procesar?idCliente=${idCliente}`;
+    this.qrTargetUrl = `${origin}/app/entregar?idCliente=${idCliente}`;
     this.qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
       this.qrTargetUrl
     )}`;
