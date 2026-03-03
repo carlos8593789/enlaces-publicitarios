@@ -81,7 +81,7 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
   }
 
   private navigateToProcesar(idCliente: number): void {
-    this.router.navigate(['/cliente/procesar'], {
+    this.router.navigate(['/app/entregar'], {
       queryParams: { idCliente }
     });
   }
@@ -92,28 +92,11 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
       return null;
     }
 
-    const numeric = Number(trimmed);
-    if (!Number.isNaN(numeric) && Number.isFinite(numeric)) {
-      return numeric;
-    }
-
-    try {
-      const parsed = JSON.parse(trimmed) as { idCliente?: number; id_cliente?: number };
-      if (typeof parsed?.idCliente === 'number') {
-        return parsed.idCliente;
-      }
-      if (typeof parsed?.id_cliente === 'number') {
-        return parsed.id_cliente;
-      }
-    } catch {
-      // no es JSON
-    }
-
     try {
       const url = new URL(trimmed);
       const idParam = url.searchParams.get('idCliente') ?? url.searchParams.get('id_cliente');
       const id = idParam ? Number(idParam) : NaN;
-      return Number.isNaN(id) ? null : id;
+      return Number.isNaN(id) || !Number.isFinite(id) ? null : id;
     } catch {
       return null;
     }
