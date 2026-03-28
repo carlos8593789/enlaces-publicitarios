@@ -1,18 +1,16 @@
-<div class="d-flex min-vh-100 bg-light">
-  <app-admin-sidebar *ngIf="!isFullscreen" [collapsed]="isSidebarCollapsed"></app-admin-sidebar>
+<div class="min-vh-100 bg-light d-flex flex-column">
+  <app-admin-header
+    *ngIf="!isFullscreen"
+    [isFullscreen]="isFullscreen"
+    (toggleSidebar)="toggleSidebar()"
+    (toggleFullscreen)="toggleFullscreen()"
+  ></app-admin-header>
 
-  <div class="flex-grow-1 d-flex flex-column">
-    <app-admin-header
-      *ngIf="!isFullscreen"
-      [isFullscreen]="isFullscreen"
-      (toggleSidebar)="toggleSidebar()"
-      (toggleFullscreen)="toggleFullscreen()"
-    ></app-admin-header>
+  <div class="d-flex flex-grow-1">
+    <app-admin-sidebar *ngIf="!isFullscreen" [collapsed]="isSidebarCollapsed"></app-admin-sidebar>
 
     <main class="flex-grow-1 p-3">
       <router-outlet></router-outlet>
     </main>
-
-    <app-admin-footer *ngIf="!isFullscreen"></app-admin-footer>
   </div>
 </div>

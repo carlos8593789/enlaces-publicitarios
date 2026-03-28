@@ -2,6 +2,7 @@ export interface RemisionSurtirInventario {
   id: number;
   color: string;
   imagen: string;
+  control_almacen: string;
 }
 
 export interface RemisionSurtirDetalle {

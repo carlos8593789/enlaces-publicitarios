@@ -1,7 +1,7 @@
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ClienteDetalle, ClienteService } from '../services/cliente.service';
 import {
@@ -29,6 +29,7 @@ export class ClienteQrProcesarComponent {
   @ViewChild('signatureCanvas') signatureCanvas?: ElementRef<HTMLCanvasElement>;
 
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly clienteService = inject(ClienteService);
   private readonly pedidosService = inject(ProductosPedidoEntregaService);
   private readonly remisionSurtirService = inject(ProductosRemisionSurtirService);
@@ -315,6 +316,11 @@ export class ClienteQrProcesarComponent {
       this.entregaError = 'La firma es obligatoria.';
       return;
     }
+    const nombreFirmante = this.personaEntrega.trim();
+    if (!nombreFirmante) {
+      this.entregaError = 'El nombre de quien firma es obligatorio.';
+      return;
+    }
     const dataUrl = canvas.toDataURL('image/png');
 
     this.pedidos.forEach((pedido) => {
@@ -328,7 +334,13 @@ export class ClienteQrProcesarComponent {
 
     const firmaBlob = this.dataUrlToBlob(dataUrl);
     const formData = new FormData();
-    formData.append('payload', JSON.stringify(this.pendingEntregaPayload));
+    formData.append(
+      'payload',
+      JSON.stringify({
+        ...this.pendingEntregaPayload,
+        persona_entrega: nombreFirmante
+      })
+    );
     formData.append('ArchivoFinal', firmaBlob, 'firma.png');
     if (this.photoFile) {
       formData.append('ArchivoFinal2', this.photoFile, this.photoFile.name || 'foto.jpg');
@@ -348,7 +360,7 @@ export class ClienteQrProcesarComponent {
         this.pendingEntregaPayload = null;
         this.photoFile = null;
         this.closeSignatureModal();
-        this.fetchPedidos();
+        this.router.navigate(['/app/leer-qr']);
       },
       error: () => {
         this.entregaSubmitting = false;

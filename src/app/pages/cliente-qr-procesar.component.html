@@ -35,7 +35,7 @@
         <div *ngFor="let remision of remisionSurtir" class="card mb-3">
           <div class="card-header d-flex flex-wrap gap-3 align-items-center">
             <span class="fw-semibold">Remision #{{ remision.id }}</span>
-            <span class="text-muted">Pedido: {{ remision.id_pedido }}</span>
+            <span class="text-muted">Pedido: #{{ remision.id_pedido }}</span>
             <span class="text-muted">Estatus: <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
                   {{ remision.estatus_remision }}
                 </span></span>
@@ -61,8 +61,8 @@
                     </ng-template>
                   </div>
                   <div class="col-8">
-                    <div><strong>Inventario:</strong> {{ detalle.id_inventario }}</div>
                     <div><strong>Color:</strong> {{ detalle.inventario.color }}</div>
+                    <div><strong>Ubicación:</strong> {{ detalle.inventario.control_almacen }}</div>
                     <div><strong>Cantidad:</strong> {{ detalle.cantidad }}</div>
                   </div>
                 </div>
@@ -122,6 +122,7 @@
                   </div>
                   <div class="col-8">
                     <div><strong>Clave:</strong> {{ detalle.clave }}</div>
+                    <div><strong>Ubicación:</strong> {{ detalle.control_almacen }}</div>
                     <div><strong>Color:</strong> {{ detalle.color_producto }}</div>
                     <div><strong>Cant. entrega:</strong> {{ detalle.cantidad_remisionada }}</div>
                   </div>
@@ -148,11 +149,16 @@
         <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeSignatureModal()"></button>
       </div>
       <div class="modal-body">
-        <p class="text-muted small mb-2">Firme en el área para confirmar la entrega.</p>
+        <div class="mt-3">
+          <label class="form-label">Nombre</label>
+          <input type="text" class="form-control" [(ngModel)]="personaEntrega" placeholder="Nombre del firmante" />
+        </div>
+        <label class="form-label">Firma</label>
         <div class="signature-pad border rounded bg-light">
           <canvas #signatureCanvas (pointerdown)="startDraw($event)" (pointermove)="draw($event)"
             (pointerup)="endDraw()" (pointerleave)="endDraw()"></canvas>
         </div>
+        <p class="text-muted small mb-2">Firme en el área para confirmar la entrega.</p>
         <div class="mt-3">
           <label class="form-label">Fotografia (opcional)</label>
           <input type="file" class="form-control" accept="image/*" capture="environment"
