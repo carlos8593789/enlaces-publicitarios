@@ -3,20 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ClienteDetalle, ClienteService } from '../services/cliente.service';
+import { ClienteDetalle, ClienteService } from '../../../services/cliente.service';
 import {
   PedidoEntrega,
   ProductosPedidoEntregaResponse
-} from '../models/producto-pedido-entrega.model';
-import { ProductosPedidoEntregaService } from '../services/productos-pedido-entrega.service';
+} from '../../../models/producto-pedido-entrega.model';
+import { ProductosPedidoEntregaService } from '../../../services/productos-pedido-entrega.service';
 import {
   ProductosRemisionSurtirResponse,
   RemisionSurtirItem
-} from '../models/productos-remision-surtir.model';
-import { ProductosRemisionSurtirService } from '../services/productos-remision-surtir.service';
-import { AuthService } from '../auth/auth.service';
-import { ConfirmModalComponent } from '../shared/confirm-modal.component';
-import { environment } from '../../environments/environment';
+} from '../../../models/productos-remision-surtir.model';
+import { ProductosRemisionSurtirService } from '../../../services/productos-remision-surtir.service';
+import { AuthService } from '../../../auth/auth.service';
+import { ConfirmModalComponent } from '../../../shared/confirm-modal.component';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-cliente-qr-procesar',

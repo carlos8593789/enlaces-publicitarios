@@ -5,10 +5,10 @@ import { roleGuard } from './auth/role.guard';
 import { LoginComponent } from './auth/login.component';
 import { AdminLayoutComponent } from './layouts/admin/admin-layout.component';
 import { ClientLayoutComponent } from './layouts/qr/client-layout.component';
-import { ClienteHomeComponent } from './pages/cliente-home.component';
-import { ClienteQrProcesarComponent } from './pages/cliente-qr-procesar.component';
-import { DashboardComponent } from './pages/dashboard.component';
-import { PizarraRemisionesComponent } from './pages/pizarra-remisiones/pizarra-remisiones.component';
+import { ClienteHomeComponent } from './pages/qr/leer/cliente-home.component';
+import { ClienteQrProcesarComponent } from './pages/qr/entregar/cliente-qr-procesar.component';
+import { DashboardComponent } from './pages/admin/dashboard.component';
+import { PizarraRemisionesComponent } from './pages/admin/pizarra-remisiones/pizarra-remisiones.component';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },

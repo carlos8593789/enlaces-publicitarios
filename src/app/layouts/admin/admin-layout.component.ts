@@ -2,14 +2,13 @@ import { Component, HostListener, inject } from '@angular/core';
 import { NgIf, DOCUMENT } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 
-import { AdminHeaderComponent } from './admin-header.component';
-import { AdminSidebarComponent } from './admin-sidebar.component';
-import { AdminFooterComponent } from './admin-footer.component';
+import { AdminHeaderComponent } from './header/admin-header.component';
+import { AdminSidebarComponent } from './sidebar/admin-sidebar.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, AdminHeaderComponent, AdminSidebarComponent, AdminFooterComponent, NgIf],
+  imports: [RouterOutlet, AdminHeaderComponent, AdminSidebarComponent, NgIf],
   templateUrl: './admin-layout.component.html',
   styleUrl: './admin-layout.component.scss'
 })

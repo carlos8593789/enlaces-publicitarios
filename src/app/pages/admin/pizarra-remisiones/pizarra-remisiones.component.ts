@@ -3,9 +3,9 @@ import { NgFor, NgIf, DatePipe } from '@angular/common';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Subscription, catchError, map, of, switchMap, timer } from 'rxjs';
 
-import { Remision } from '../../models/remision.model';
-import { AuthService } from '../../auth/auth.service';
-import { environment } from '../../../environments/environment';
+import { Remision } from '../../../models/remision.model';
+import { AuthService } from '../../../auth/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-pizarra-remisiones',
