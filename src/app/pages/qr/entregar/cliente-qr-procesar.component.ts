@@ -360,7 +360,9 @@ export class ClienteQrProcesarComponent {
         this.pendingEntregaPayload = null;
         this.photoFile = null;
         this.closeSignatureModal();
-        this.router.navigate(['/qr/leer']);
+        this.router.navigate(['/qr/leer'], {
+          queryParams: { entrega: 'ok' }
+        });
       },
       error: () => {
         this.entregaSubmitting = false;

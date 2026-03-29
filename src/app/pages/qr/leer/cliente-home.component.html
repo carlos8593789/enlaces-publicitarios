@@ -3,6 +3,9 @@
     <div class="card-body">
       <h2 class="h5 mb-3">Lector de QR</h2>
       <p class="text-muted mb-3">Apunta la cámara al código QR para procesarlo.</p>
+      <div *ngIf="successMessage" class="alert alert-success" role="alert">
+        {{ successMessage }}
+      </div>
 
       <div class="ratio ratio-4x3 rounded overflow-hidden border bg-dark">
         <video #video class="w-100 h-100" autoplay playsinline muted></video>

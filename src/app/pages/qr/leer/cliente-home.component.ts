@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
 @Component({
@@ -14,18 +14,26 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
   @ViewChild('video', { static: true }) videoElement!: ElementRef<HTMLVideoElement>;
 
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly reader = new BrowserMultiFormatReader();
   private scanControls: IScannerControls | null = null;
+  private successMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
   isScanning = false;
   errorMessage = '';
+  successMessage = '';
 
   ngAfterViewInit(): void {
+    this.loadSuccessMessage();
     this.startScan();
   }
 
   ngOnDestroy(): void {
     this.stopScan();
+    if (this.successMessageTimer) {
+      clearTimeout(this.successMessageTimer);
+      this.successMessageTimer = null;
+    }
   }
 
   startScan(): void {
@@ -83,6 +91,29 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
   private navigateToProcesar(idCliente: number): void {
     this.router.navigate(['/app/entregar'], {
       queryParams: { idCliente }
+    });
+  }
+
+  private loadSuccessMessage(): void {
+    const entregaParam = this.route.snapshot.queryParamMap.get('entrega');
+    if (entregaParam !== 'ok') {
+      return;
+    }
+
+    this.successMessage = 'La mercancia ya fue entregada.';
+    if (this.successMessageTimer) {
+      clearTimeout(this.successMessageTimer);
+    }
+    this.successMessageTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.successMessageTimer = null;
+    }, 5000);
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { entrega: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
     });
   }
 
