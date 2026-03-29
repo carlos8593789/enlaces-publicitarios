@@ -360,7 +360,7 @@ export class ClienteQrProcesarComponent {
         this.pendingEntregaPayload = null;
         this.photoFile = null;
         this.closeSignatureModal();
-        this.router.navigate(['/app/leer-qr']);
+        this.router.navigate(['/qr/leer']);
       },
       error: () => {
         this.entregaSubmitting = false;
@@ -376,7 +376,7 @@ export class ClienteQrProcesarComponent {
     }
 
     const origin = window.location.origin;
-    this.qrTargetUrl = `${origin}/cliente/procesar?idCliente=${this.idCliente}`;
+    this.qrTargetUrl = `idCliente=${this.idCliente}`;
     this.qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
       this.qrTargetUrl
     )}`;
