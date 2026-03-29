@@ -1,0 +1,51 @@
+<nav class="navbar navbar-dark bg-primary px-3">
+  <div class="d-flex align-items-center gap-2">
+    <a class="navbar-brand mb-0 h1" routerLink="/qr">Entregas</a>
+    <button
+      *ngIf="!isFullscreen"
+      class="btn btn-outline-light btn-sm icon-btn"
+      type="button"
+      aria-label="Pantalla completa"
+      title="Pantalla completa"
+      (click)="toggleFullscreen.emit()"
+    >
+      <svg
+        class="icon-svg"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M1 1h5v2H3v3H1V1Zm9 0h5v5h-2V3h-3V1ZM1 10h2v3h3v2H1v-5Zm12 0h2v5h-5v-2h3v-3Z"
+        ></path>
+      </svg>
+      <span class="visually-hidden">Pantalla completa</span>
+    </button>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    <span class="text-white small">Sesión activa</span>
+    <button
+      class="btn btn-outline-light btn-sm icon-btn"
+      type="button"
+      aria-label="Salir"
+      title="Salir"
+      (click)="logout()"
+    >
+      <svg
+        class="icon-svg"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M6 3a1 1 0 0 0-1 1v2h1V4h6v8H6v-2H5v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H6Z"
+        ></path>
+        <path d="M1 8l3-3v2h5v2H4v2L1 8Z"></path>
+      </svg>
+      <span class="visually-hidden">Salir</span>
+    </button>
+  </div>
+</nav>

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { NgIf } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 
-import { AuthService } from '../../auth/auth.service';
+import { AuthService } from '../../../auth/auth.service';
 
 @Component({
   selector: 'app-client-header',
@@ -13,7 +13,6 @@ import { AuthService } from '../../auth/auth.service';
 })
 export class ClientHeaderComponent {
   @Input() isFullscreen = false;
-  @Output() toggleMenu = new EventEmitter<void>();
   @Output() toggleFullscreen = new EventEmitter<void>();
 
   private readonly authService = inject(AuthService);

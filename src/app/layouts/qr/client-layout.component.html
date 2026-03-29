@@ -1,0 +1,15 @@
+<div class="d-flex min-vh-100 bg-light">
+  <div class="flex-grow-1 d-flex flex-column">
+    <app-client-header
+      *ngIf="!isFullscreen"
+      [isFullscreen]="isFullscreen"
+      (toggleFullscreen)="toggleFullscreen()"
+    ></app-client-header>
+
+    <main class="flex-grow-1 p-3">
+      <router-outlet></router-outlet>
+    </main>
+
+    <app-client-footer *ngIf="!isFullscreen"></app-client-footer>
+  </div>
+</div>
