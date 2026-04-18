@@ -89,7 +89,7 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
   }
 
   private navigateToProcesar(idCliente: number): void {
-    this.router.navigate(['/app/entregar'], {
+    this.router.navigate(['/qr/entregar'], {
       queryParams: { idCliente }
     });
   }
@@ -123,13 +123,12 @@ export class ClienteHomeComponent implements AfterViewInit, OnDestroy {
       return null;
     }
 
-    try {
-      const url = new URL(trimmed);
-      const idParam = url.searchParams.get('idCliente') ?? url.searchParams.get('id_cliente');
-      const id = idParam ? Number(idParam) : NaN;
-      return Number.isNaN(id) || !Number.isFinite(id) ? null : id;
-    } catch {
+    const match = trimmed.match(/^idCliente=(\d+)$/);
+    if (!match) {
       return null;
     }
+
+    const id = Number(match[1]);
+    return Number.isNaN(id) || !Number.isFinite(id) ? null : id;
   }
 }
