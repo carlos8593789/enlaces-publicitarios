@@ -75,7 +75,8 @@ export class ProductosPedidoEntregaService {
             id_cliente: pedido.id_cliente,
             total: pedido.total,
             estatus: pedido.estatus,
-            detalles
+            detalles,
+            remisiones: pedido.remisiones
           };
         })
       : [];

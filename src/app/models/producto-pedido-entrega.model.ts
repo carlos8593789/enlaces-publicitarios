@@ -1,3 +1,5 @@
+import { Remision } from "./remision.model";
+
 export interface PedidoEntregaColor {
   cantidad_pendiente: number;
   cantidad_remisionada: number;
@@ -23,6 +25,7 @@ export interface PedidoEntregaApi {
   total: number;
   estatus: number;
   detalles: PedidoEntregaDetalleApi[];
+  remisiones: Remision[];
 }
 
 export interface PedidoEntregaDetalle {
@@ -46,6 +49,8 @@ export interface PedidoEntrega {
   total: number;
   estatus: number;
   detalles: PedidoEntregaDetalle[];
+  remisiones: Remision[];
+  
 }
 
 export interface ProductosPedidoEntregaApiResponse {

@@ -13,7 +13,7 @@
             <strong>{{ cliente.nombre }}</strong>
           </li>
           <li class="list-group-item d-flex justify-content-between">
-            <span>Email</span>
+            <span></span>
             <strong>{{ cliente.email }}</strong>
           </li>
           <li class="list-group-item d-flex justify-content-between">
@@ -104,9 +104,35 @@
               <span class="text-success small d-block mb-2">Firma capturada</span>
               <img [src]="signatureDataUrl[pedido.id]" alt="Firma" class="signature-preview" />
             </div>
-            <div *ngIf="pedido.detalles.length === 0" class="text-muted">Sin detalles.</div>
-
-            <div *ngFor="let detalle of pedido.detalles" class="border rounded p-3 mb-3">
+            <div *ngIf="pedido.detalles.length === 0" class="text-muted">Sin productos que entregar</div>
+            <div *ngIf="pedido.remisiones.length > 0">
+            <blockquote class="blockquote text-center">
+              <p>Remisiones</p>
+            </blockquote>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th scope="col">Numero</th>
+                  <th scope="col">Estatus</th>
+                  <th scope="col">Fecha surtido</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let remision of pedido.remisiones">
+                  <td>{{ remision.numero }}</td>
+                  <td>
+                    <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
+                      {{ remision.estatus_remision }}
+                    </span>
+                  </td>
+                  <td>{{ remision.fecha_resurtir ? (remision.fecha_resurtir | date: 'short') : 'N/A' }}</td>
+              </tbody>
+            </table>
+            </div>
+            <blockquote class="blockquote text-center">
+              <p>Productos a entregar</p>
+            </blockquote>
+            <div *ngFor="let detalle of pedido.detalles" class="p-3 mb-3">
               <div class="d-flex flex-wrap gap-3 align-items-start">
                 <div class="row">
                   <div class="col-4">
