@@ -17,7 +17,7 @@ import { environment } from '../../../../environments/environment';
 export class PizarraRemisionesComponent implements OnInit, OnDestroy {
   private readonly apiUrl = `${environment.apiBaseUrl}/api/remisiones`;
   private readonly congelarUrl = `${environment.apiBaseUrl}/api/remisiones/congelar`;
-  private readonly pollingIntervalMs = 30000;
+  private readonly pollingIntervalMs = 5000;
   private pollingSub?: Subscription;
   private since: number | null = null;
   remisiones: Remision[] = [];
@@ -58,9 +58,7 @@ export class PizarraRemisionesComponent implements OnInit, OnDestroy {
       )
       .subscribe((response) => {
         const nuevos = Array.isArray(response.data) ? response.data : [];
-        if (nuevos.length) {
-          this.remisiones = [...nuevos, ...this.remisiones];
-        }
+        this.remisiones = nuevos;
         this.since = typeof response.next_since === 'number' ? response.next_since : this.since;
         this.isLoading = false;
       });
@@ -91,7 +89,7 @@ export class PizarraRemisionesComponent implements OnInit, OnDestroy {
     }
 
     return this.http
-      .get<RemisionesResponse>(this.apiUrl, { params })
+      .get<RemisionesResponse>(this.apiUrl)
       .pipe(
         map((response) => ({
           data: Array.isArray(response?.data) ? response.data : [],
@@ -127,16 +125,6 @@ export class PizarraRemisionesComponent implements OnInit, OnDestroy {
     if (!idPedido) {
       return;
     }
-    const token = this.authService.getToken();
-    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    this.http.post(this.congelarUrl, { id_pedido: idPedido }, { headers }).subscribe({
-      next: () => {
-        this.remisiones = this.remisiones.filter((item) => item.id_pedido !== idPedido);
-      },
-      error: () => {
-        this.errorMessage = 'No se pudo congelar la remisión.';
-      }
-    });
   }
 }
 
