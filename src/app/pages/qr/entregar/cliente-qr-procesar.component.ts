@@ -178,6 +178,10 @@ export class ClienteQrProcesarComponent {
     this.surtirConfirmOpen = true;
   }
 
+  volverEscanear(): void {
+    this.router.navigate(['/qr/leer']);
+  }
+
   closeSurtirConfirm(): void {
     this.surtirConfirmOpen = false;
   }

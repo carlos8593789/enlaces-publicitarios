@@ -71,7 +71,7 @@
           </div>
         </div>
 
-        <div class="d-flex justify-content-center mt-3">
+        <div class="d-flex justify-content-center gap-2 mt-3">
           <button
             type="button"
             class="btn btn-primary"
@@ -79,6 +79,9 @@
             (click)="openSurtirConfirm()"
           >
             Surtir mercancia
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="volverEscanear()">
+            Volver a escanear
           </button>
         </div>
       </div>
@@ -157,9 +160,12 @@
             </div>
           </div>
         </div>
-        <div class="d-flex justify-content-center mt-4">
+        <div class="d-flex justify-content-center gap-2 mt-4">
           <button type="button" class="btn btn-success px-4" (click)="startEntrega()" [disabled]="pedidos.length === 0">
             Entregar mercancía
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="volverEscanear()">
+            Volver a escanear
           </button>
         </div>
       </div>
