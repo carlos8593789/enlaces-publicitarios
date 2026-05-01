@@ -73,6 +73,8 @@ export class ProductosPedidoEntregaService {
           return {
             id: pedido.id,
             id_cliente: pedido.id_cliente,
+            con_impresion: pedido.con_impresion,
+            entrega_tipo_mercancia: pedido.entrega_tipo_mercancia,
             total: pedido.total,
             estatus: pedido.estatus,
             detalles,

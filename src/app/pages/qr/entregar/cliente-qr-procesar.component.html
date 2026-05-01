@@ -36,9 +36,10 @@
           <div class="card-header d-flex flex-wrap gap-3 align-items-center">
             <span class="fw-semibold">Remision #{{ remision.id }}</span>
             <span class="text-muted">Pedido: #{{ remision.id_pedido }}</span>
-            <span class="text-muted">Estatus: <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
-                  {{ remision.estatus_remision }}
-                </span></span>
+            <span class="text-muted">Estatus: <span class="badge" [class.bg-success]="remision.estatus == 3"
+                [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1">
+                {{ remision.estatus_remision }}
+              </span></span>
           </div>
           <div class="card-body">
             <div *ngIf="remision.detalles.length === 0" class="text-muted">Sin detalles.</div>
@@ -48,11 +49,8 @@
                 <div class="row">
                   <div class="col-4">
                     <div *ngIf="detalle.inventario.imagen; else noInventarioImagen" class="product-image-wrapper">
-                      <img
-                        [src]="getImagenUrl(detalle.inventario.imagen)"
-                        [alt]="'Inventario ' + detalle.inventario.id"
-                        class="product-image"
-                      />
+                      <img [src]="getImagenUrl(detalle.inventario.imagen)" [alt]="'Inventario ' + detalle.inventario.id"
+                        class="product-image" />
                     </div>
                     <ng-template #noInventarioImagen>
                       <div class="product-image-wrapper product-image-placeholder">
@@ -72,12 +70,7 @@
         </div>
 
         <div class="d-flex justify-content-center gap-2 mt-3">
-          <button
-            type="button"
-            class="btn btn-primary"
-            [disabled]="surtirLoading"
-            (click)="openSurtirConfirm()"
-          >
+          <button type="button" class="btn btn-primary" [disabled]="surtirLoading" (click)="openSurtirConfirm()">
             Surtir mercancia
           </button>
           <button type="button" class="btn btn-outline-secondary" (click)="volverEscanear()">
@@ -100,6 +93,14 @@
         <div *ngFor="let pedido of pedidos" class="card mb-3">
           <div class="card-header d-flex flex-wrap gap-3 align-items-center">
             <span class="fw-semibold">Pedido #{{ pedido.id }}</span>
+            <span class="text-muted"><span class="badge" [class.bg-success]="pedido.con_impresion"
+                [class.bg-secondary]="!pedido.con_impresion">
+                {{ pedido.con_impresion ? 'Con impresión' : 'Sin impresión' }}
+              </span></span>
+            <span class="text-muted"><span class="badge" [class.bg-success]="pedido.entrega_tipo_mercancia  === 2"
+                [class.bg-secondary]="pedido.entrega_tipo_mercancia === 1">
+                {{ pedido.entrega_tipo_mercancia === 2? 'Con Envió' : 'Sin Envió' }}
+              </span></span>
             <span class="ms-auto"></span>
           </div>
           <div class="card-body">
@@ -109,28 +110,29 @@
             </div>
             <div *ngIf="pedido.detalles.length === 0" class="text-muted">Sin productos que entregar</div>
             <div *ngIf="pedido.remisiones.length > 0">
-            <blockquote class="blockquote text-center">
-              <p>Remisiones</p>
-            </blockquote>
-            <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th scope="col">Numero</th>
-                  <th scope="col">Estatus</th>
-                  <th scope="col">Fecha surtido</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let remision of pedido.remisiones">
-                  <td>{{ remision.numero }}</td>
-                  <td>
-                    <span class="badge" [class.bg-success]="remision.estatus == 3" [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1" >
-                      {{ remision.estatus_remision }}
-                    </span>
-                  </td>
-                  <td>{{ remision.fecha_resurtir ? (remision.fecha_resurtir | date: 'short') : 'N/A' }}</td>
-              </tbody>
-            </table>
+              <blockquote class="blockquote text-center">
+                <p>Remisiones</p>
+              </blockquote>
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">Numero</th>
+                    <th scope="col">Estatus</th>
+                    <th scope="col">Fecha surtido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let remision of pedido.remisiones">
+                    <td>{{ remision.numero }}</td>
+                    <td>
+                      <span class="badge" [class.bg-success]="remision.estatus == 3"
+                        [class.bg-primary]="remision.estatus == 2" [class.bg-secondary]="remision.estatus == 1">
+                        {{ remision.estatus_remision }}
+                      </span>
+                    </td>
+                    <td>{{ remision.fecha_resurtir ? (remision.fecha_resurtir | date: 'short') : 'N/A' }}</td>
+                </tbody>
+              </table>
             </div>
             <blockquote class="blockquote text-center">
               <p>Productos a entregar</p>
@@ -213,13 +215,6 @@
 </div>
 <div *ngIf="signatureModalOpen" class="modal-backdrop fade show"></div>
 
-<app-confirm-modal
-  [open]="surtirConfirmOpen"
-  title="Confirmar surtido"
-  message="¿Deseas surtir la mercancia ahora?"
-  confirmText="Confirmar"
-  cancelText="Cancelar"
-  [confirmDisabled]="surtirLoading"
-  (confirm)="confirmSurtirMercancia()"
-  (cancel)="closeSurtirConfirm()"
-></app-confirm-modal>
+<app-confirm-modal [open]="surtirConfirmOpen" title="Confirmar surtido" message="¿Deseas surtir la mercancia ahora?"
+  confirmText="Confirmar" cancelText="Cancelar" [confirmDisabled]="surtirLoading" (confirm)="confirmSurtirMercancia()"
+  (cancel)="closeSurtirConfirm()"></app-confirm-modal>

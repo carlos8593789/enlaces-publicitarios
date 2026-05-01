@@ -22,6 +22,8 @@ export interface PedidoEntregaDetalleApi {
 export interface PedidoEntregaApi {
   id: number;
   id_cliente: number;
+  con_impresion: boolean;
+  entrega_tipo_mercancia: number;
   total: number;
   estatus: number;
   detalles: PedidoEntregaDetalleApi[];
@@ -46,6 +48,8 @@ export interface PedidoEntregaDetalle {
 export interface PedidoEntrega {
   id: number;
   id_cliente: number;
+  con_impresion: boolean;
+  entrega_tipo_mercancia: number;
   total: number;
   estatus: number;
   detalles: PedidoEntregaDetalle[];
