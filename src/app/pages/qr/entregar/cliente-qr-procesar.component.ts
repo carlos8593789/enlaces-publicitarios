@@ -325,6 +325,10 @@ export class ClienteQrProcesarComponent {
       this.entregaError = 'El nombre de quien firma es obligatorio.';
       return;
     }
+    if (!this.photoFile) {
+      this.entregaError = 'La fotografía es obligatoria.';
+      return;
+    }
     const dataUrl = canvas.toDataURL('image/png');
 
     this.pedidos.forEach((pedido) => {
