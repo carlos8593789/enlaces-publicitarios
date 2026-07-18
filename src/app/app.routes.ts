@@ -9,6 +9,7 @@ import { ClienteHomeComponent } from './pages/qr/leer/cliente-home.component';
 import { ClienteQrProcesarComponent } from './pages/qr/entregar/cliente-qr-procesar.component';
 import { DashboardComponent } from './pages/admin/dashboard.component';
 import { PizarraRemisionesComponent } from './pages/admin/pizarra-remisiones/pizarra-remisiones.component';
+import { CrearCotizacionComponent } from './pages/admin/cotizaciones/crear-cotizacion.component';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },
@@ -20,6 +21,7 @@ export const routes: Routes = [
 		children: [
 			{ path: 'dashboard', component: DashboardComponent },
 			{ path: 'pizarra-remisiones', component: PizarraRemisionesComponent },
+			{ path: 'cotizaciones/crear', component: CrearCotizacionComponent },
 			{ path: '', pathMatch: 'full', redirectTo: 'pizarra-remisiones' }
 		]
 	},

@@ -8,6 +8,9 @@ export interface ClienteDetalle {
   nombre: string;
   email: string;
   empresa: string;
+  telefono?: string;
+  celular?: string;
+  telefono_contacto?: string;
 }
 
 export interface ClienteResponse {

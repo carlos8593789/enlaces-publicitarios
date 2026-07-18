@@ -1,0 +1,215 @@
+<section class="container-fluid py-3">
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h5 mb-0">Crear cotizacion</h2>
+        <span class="badge text-bg-light border">IVA {{ ivaRate * 100 }}%</span>
+      </div>
+
+      <p class="text-muted small mb-2">Cliente asignado para esta cotizacion (solo lectura).</p>
+
+      <p *ngIf="clienteError" class="text-danger small mt-2 mb-0">{{ clienteError }}</p>
+      <div *ngIf="isLoadingCliente" class="text-muted small mt-2">Cargando cliente...</div>
+
+      <div *ngIf="cliente" class="cliente-box mt-3">
+        <div class="row g-2">
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Nombre</span>
+            <strong>{{ cliente.nombre }}</strong>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Correo</span>
+            <strong>{{ cliente.email || 'Sin email' }}</strong>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Telefono</span>
+            <strong>{{ clienteTelefono }}</strong>
+          </div>
+          <div class="col-12 col-md-3" *ngIf="clienteId !== null">
+            <span class="text-muted d-block small">ID Cliente</span>
+            <strong>#{{ clienteId }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h3 class="h6 mb-3">Buscar productos</h3>
+
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar por clave o nombre"
+          [(ngModel)]="terminoBusqueda"
+          (input)="limpiarResultadosBusqueda()"
+          (keyup.enter)="buscarProductos()"
+        />
+        <button class="btn btn-outline-primary" type="button" (click)="buscarProductos()" [disabled]="buscandoProductos">
+          {{ buscandoProductos ? 'Buscando...' : 'Buscar' }}
+        </button>
+      </div>
+
+      <div class="lista-resultados mb-3" *ngIf="productosEncontrados.length > 0">
+        <div
+          class="producto-item"
+          *ngFor="let producto of productosEncontrados; trackBy: trackByProducto"
+        >
+          <div class="producto-item-main">
+            <ng-container *ngIf="producto.imagen; else sinImagenBusqueda">
+              <img [src]="producto.imagen" [alt]="producto.nombre" class="producto-thumb" />
+            </ng-container>
+            <ng-template #sinImagenBusqueda>
+              <div class="producto-thumb-placeholder">Sin imagen</div>
+            </ng-template>
+
+            <div>
+              <div class="producto-label">{{ producto.clave }}</div>
+              <div class="small text-muted">{{ producto.nombre }}</div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-primary"
+            (click)="abrirModalCantidad(producto)"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="productosError" class="text-danger small mb-0">{{ productosError }}</p>
+      <p *ngIf="busquedaInfo" class="text-success small mb-0">{{ busquedaInfo }}</p>
+      <p class="text-muted small mb-0">Selecciona "Agregar" para capturar la cantidad e incluir el producto en la cotizacion.</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+        <h3 class="h6 mb-0">Productos agregados</h3>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger"
+          (click)="limpiarCotizacion()"
+          [disabled]="lineasCotizacion.length === 0"
+        >
+          Vaciar
+        </button>
+      </div>
+
+      <div class="row g-3 align-items-start">
+        <div class="col-12 col-lg-8">
+          <p *ngIf="lineasCotizacion.length === 0" class="text-muted small mb-0">
+            Aun no agregas productos a la cotizacion.
+          </p>
+
+          <div class="tabla-wrapper" *ngIf="lineasCotizacion.length > 0">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-end">Precio</th>
+                  <th style="width: 120px">Cantidad</th>
+                  <th class="text-end">Importe</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let linea of lineasCotizacion; trackBy: trackByLinea">
+                  <td>
+                    <div class="producto-cell">
+                      <ng-container *ngIf="linea.imagen; else sinImagenProducto">
+                        <img [src]="linea.imagen" [alt]="linea.nombre" class="producto-thumb" />
+                      </ng-container>
+                      <ng-template #sinImagenProducto>
+                        <div class="producto-thumb-placeholder">Sin imagen</div>
+                      </ng-template>
+                      <div>
+                        <div class="fw-semibold">{{ linea.clave }}</div>
+                        <div class="small text-muted">{{ linea.nombre }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-end">{{ linea.precioUnitario | currency: 'MXN' }}</td>
+                  <td>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      min="1"
+                      [ngModel]="linea.cantidad"
+                      (ngModelChange)="actualizarCantidad(linea, $event)"
+                    />
+                  </td>
+                  <td class="text-end">{{ linea.precioUnitario * linea.cantidad | currency: 'MXN' }}</td>
+                  <td class="text-end">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger"
+                      (click)="eliminarProducto(linea.id)"
+                    >
+                      Quitar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="resumen-card">
+            <div class="small text-muted">Productos totales</div>
+            <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
+            <div>Subtotal: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
+            <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
+            <div class="fs-5 mt-1">Total: <strong>{{ total | currency: 'MXN' }}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="modal-backdrop-cot" *ngIf="modalCantidadAbierto" (click)="cerrarModalCantidad()"></div>
+
+<div class="modal-cantidad" *ngIf="modalCantidadAbierto" role="dialog" aria-modal="true" aria-labelledby="modalCantidadTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalCantidadTitulo" class="h6 mb-3">Agregar producto a cotizacion</h4>
+
+    <div *ngIf="productoSeleccionado as producto" class="d-flex gap-2 align-items-center mb-3">
+      <ng-container *ngIf="producto.imagen; else sinImagenModal">
+        <img [src]="producto.imagen" [alt]="producto.nombre" class="producto-thumb" />
+      </ng-container>
+      <ng-template #sinImagenModal>
+        <div class="producto-thumb-placeholder">Sin imagen</div>
+      </ng-template>
+      <div>
+        <div class="fw-semibold">{{ producto.clave }}</div>
+        <div class="small text-muted">{{ producto.nombre }}</div>
+      </div>
+    </div>
+
+    <label for="cantidadProducto" class="form-label">Cantidad</label>
+    <input
+      id="cantidadProducto"
+      type="number"
+      class="form-control mb-3"
+      min="1"
+      [(ngModel)]="cantidadSeleccionada"
+      (keyup.enter)="confirmarAgregarProducto()"
+    />
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalCantidad()">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmarAgregarProducto()">
+        Agregar
+      </button>
+    </div>
+  </div>
+</div>
