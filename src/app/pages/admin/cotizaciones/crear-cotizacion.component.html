@@ -131,18 +131,29 @@
                       <div>
                         <div class="fw-semibold">{{ linea.clave }}</div>
                         <div class="small text-muted">{{ linea.nombre }}</div>
+                        <div
+                          class="small text-secondary"
+                          *ngIf="linea.coloresSeleccionados?.length"
+                          [title]="formatearColoresSeleccionados(linea.coloresSeleccionados)"
+                        >
+                          Colores: {{ formatearColoresSeleccionadosCompacto(linea.coloresSeleccionados) }}
+                        </div>
+                        <div class="small text-muted">
+                          {{ getResumenColoresSeleccionados(linea.coloresSeleccionados) }}
+                        </div>
+                        <button
+                          type="button"
+                          class="btn-editar-colores"
+                          (click)="actualizarCantidadDesdeModal(linea)"
+                        >
+                          Editar colores
+                        </button>
                       </div>
                     </div>
                   </td>
                   <td class="text-end">{{ linea.precioUnitario | currency: 'MXN' }}</td>
                   <td>
-                    <input
-                      type="number"
-                      class="form-control form-control-sm"
-                      min="1"
-                      [ngModel]="linea.cantidad"
-                      (ngModelChange)="actualizarCantidad(linea, $event)"
-                    />
+                    <div class="cantidad-display">{{ linea.cantidad }}</div>
                   </td>
                   <td class="text-end">{{ linea.precioUnitario * linea.cantidad | currency: 'MXN' }}</td>
                   <td class="text-end">
@@ -178,7 +189,9 @@
 
 <div class="modal-cantidad" *ngIf="modalCantidadAbierto" role="dialog" aria-modal="true" aria-labelledby="modalCantidadTitulo">
   <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
-    <h4 id="modalCantidadTitulo" class="h6 mb-3">Agregar producto a cotizacion</h4>
+    <h4 id="modalCantidadTitulo" class="h6 mb-3">
+      {{ lineaEditando ? 'Editar cantidad por color' : 'Agregar producto a cotizacion' }}
+    </h4>
 
     <div *ngIf="productoSeleccionado as producto" class="d-flex gap-2 align-items-center mb-3">
       <ng-container *ngIf="producto.imagen; else sinImagenModal">
@@ -190,25 +203,73 @@
       <div>
         <div class="fw-semibold">{{ producto.clave }}</div>
         <div class="small text-muted">{{ producto.nombre }}</div>
+        <div class="small text-muted">Stock local: {{ stockLocalProducto }}</div>
       </div>
     </div>
 
-    <label for="cantidadProducto" class="form-label">Cantidad</label>
-    <input
-      id="cantidadProducto"
-      type="number"
-      class="form-control mb-3"
-      min="1"
-      [(ngModel)]="cantidadSeleccionada"
-      (keyup.enter)="confirmarAgregarProducto()"
-    />
+    <div *ngIf="cargandoStockProducto" class="small text-muted mb-3">
+      Cargando stock por color...
+    </div>
+
+    <p *ngIf="stockProductoError" class="text-danger small mb-3">{{ stockProductoError }}</p>
+
+    <div class="stock-colores" *ngIf="!cargandoStockProducto && coloresStockProducto.length > 0">
+      <div class="stock-color-card" *ngFor="let colorItem of coloresStockProducto; trackBy: trackByColor">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <ng-container *ngIf="colorItem.imagen; else sinImagenColorStock">
+            <img [src]="colorItem.imagen" [alt]="colorItem.color" class="producto-thumb" />
+          </ng-container>
+          <ng-template #sinImagenColorStock>
+            <div class="producto-thumb-placeholder">Sin imagen</div>
+          </ng-template>
+          <div>
+            <div class="fw-semibold">{{ colorItem.color }}</div>
+            <div class="small text-muted">Stock total: {{ colorItem.total }}</div>
+          </div>
+        </div>
+
+        <div class="stock-almacen-lista mb-2" *ngIf="colorItem.stock.length > 0">
+          <div class="stock-almacen-item" *ngFor="let stockItem of colorItem.stock">
+            <div class="small stock-almacen-nombre" [innerHTML]="stockItem.nombre"></div>
+            <div class="small">
+              Cantidad: <strong>{{ stockItem.cantidad }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <label class="form-label small mb-1">
+          {{ lineaEditando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
+        </label>
+        <input
+          type="number"
+          class="form-control form-control-sm"
+          min="0"
+          [max]="colorItem.total"
+          [ngModel]="colorItem.cantidadSeleccionada"
+          (ngModelChange)="actualizarCantidadColor(colorItem, $event)"
+        />
+      </div>
+    </div>
+
+    <p class="small text-muted mb-3" *ngIf="!cargandoStockProducto && coloresStockProducto.length === 0">
+      No se encontraron colores para este producto.
+    </p>
+
+    <div class="small mb-3">
+      Total seleccionado:
+      <strong>{{ cantidadTotalSeleccionadaEnModal }}</strong>
+    </div>
+
+    <div *ngIf="calculandoPrecioProducto" class="small text-muted mb-3">
+      Calculando precio del producto...
+    </div>
 
     <div class="d-flex justify-content-end gap-2">
-      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalCantidad()">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalCantidad()" [disabled]="calculandoPrecioProducto">
         Cancelar
       </button>
-      <button type="button" class="btn btn-primary" (click)="confirmarAgregarProducto()">
-        Agregar
+      <button type="button" class="btn btn-primary" (click)="confirmarAgregarProducto()" [disabled]="calculandoPrecioProducto">
+        {{ calculandoPrecioProducto ? 'Calculando...' : (lineaEditando ? 'Actualizar' : 'Agregar') }}
       </button>
     </div>
   </div>

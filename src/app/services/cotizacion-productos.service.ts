@@ -8,15 +8,39 @@ import { environment } from '../../environments/environment';
 interface BuscadorProductoItem {
   id: number;
   imagen: string;
+  id_almacen: number;
   value: string;
   label: string;
+}
+
+export interface ProductoStockAlmacenItem {
+  nombre: string;
+  local: number;
+  estatus: number;
+  cantidad: number;
+  diasLlegada: number;
+  horaCierre: string;
+}
+
+export interface ProductoStockColor {
+  color: string;
+  imagen: string;
+  total: number;
+  stock: ProductoStockAlmacenItem[];
+}
+
+export interface ProductoStockDetalle {
+  almacenes: ProductoStockColor[];
+  stockLocal: number;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class CotizacionProductosService {
-  private readonly apiUrl = `${environment.apiBaseUrl}/api/productos-stock-buscar`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/productos-buscar`;
+  private readonly productosUrl = `${environment.apiBaseUrl}/api/productos`;
+  private readonly precioUrl = `${environment.apiBaseUrl}/api/productos-precio`;
 
   private readonly fallbackCatalogo: CotizacionProducto[] = [
     { id: 101, clave: 'SILLA-ECO', nombre: 'Silla ecologica', precioUnitario: 320, imagen: '' },
@@ -38,6 +62,36 @@ export class CotizacionProductosService {
     return this.http.get<unknown>(this.apiUrl, { params }).pipe(
       map((response) => this.normalizeProductos(response, normalizedTerm)),
       catchError(() => of(this.filterFallback(normalizedTerm)))
+    );
+  }
+
+  getProductoStock(idProducto: number): Observable<ProductoStockDetalle> {
+    if (!idProducto || Number.isNaN(idProducto)) {
+      return of({ almacenes: [], stockLocal: 0 });
+    }
+
+    const endpoint = `${this.productosUrl}/${idProducto}/stock`;
+
+    return this.http.get<unknown>(endpoint).pipe(
+      map((response) => this.normalizeProductoStock(response)),
+      catchError(() => of({ almacenes: [], stockLocal: 0 }))
+    );
+  }
+
+  getProductoPrecio(productoId: number, idCliente: number, cantidad: number): Observable<number> {
+    if (!productoId || Number.isNaN(productoId) || !idCliente || Number.isNaN(idCliente)) {
+      return of(0);
+    }
+
+    const cantidadNormalizada = Number.isFinite(cantidad) ? Math.max(1, Math.floor(cantidad)) : 1;
+    const params = new HttpParams()
+      .set('productoId', String(productoId))
+      .set('idCliente', String(idCliente))
+      .set('cantidad', String(cantidadNormalizada));
+
+    return this.http.get<unknown>(this.precioUrl, { params }).pipe(
+      map((response) => this.normalizeProductoPrecio(response)),
+      catchError(() => of(0))
     );
   }
 
@@ -73,12 +127,13 @@ export class CotizacionProductosService {
         this.toString(record['url_imagen']);
       const value = this.toString(record['value']);
       const label = this.toString(record['label']);
+      const id_almacen = this.toNumber(record['id_almacen']) ?? 0;
 
       if (id === null || !value || !label) {
         return null;
       }
 
-      parsed.push({ id, imagen, value, label });
+      parsed.push({ id, imagen, id_almacen, value, label });
     }
 
     return parsed.map((item) => ({
@@ -86,7 +141,8 @@ export class CotizacionProductosService {
       nombre: item.value,
       clave: item.label,
       precioUnitario: 0,
-      imagen: this.normalizeImagenUrl(item.imagen)
+      imagen: this.normalizeImagenUrl(item.imagen),
+      id_almacen: item.id_almacen
     }));
   }
 
@@ -94,6 +150,73 @@ export class CotizacionProductosService {
     return items
       .map((item) => this.normalizeProducto(item))
       .filter((item): item is CotizacionProducto => item !== null);
+  }
+
+  private normalizeProductoStock(response: unknown): ProductoStockDetalle {
+    const record = this.asRecord(response);
+    const data = this.asRecord(record?.['data']);
+    const almacenesRaw = Array.isArray(data?.['almacenes']) ? data['almacenes'] : [];
+
+    const almacenes = almacenesRaw
+      .map((item) => this.normalizeStockColor(item))
+      .filter((item): item is ProductoStockColor => item !== null);
+
+    const stockLocal = this.toNumber(data?.['stockLocal']) ?? 0;
+
+    return {
+      almacenes,
+      stockLocal: Math.max(0, stockLocal)
+    };
+  }
+
+  private normalizeProductoPrecio(response: unknown): number {
+    const record = this.asRecord(response);
+    const data = this.asRecord(record?.['data']);
+    const precio = this.toNumber(data?.['precio']) ?? 0;
+
+    return Math.max(0, precio);
+  }
+
+  private normalizeStockColor(value: unknown): ProductoStockColor | null {
+    const record = this.asRecord(value);
+    if (!record) {
+      return null;
+    }
+
+    const color = this.toString(record['color']) || 'POR DEFINIR';
+    const imagen = this.normalizeImagenUrl(this.toString(record['imagen']));
+    const almacen = this.asRecord(record['almacen']);
+    const stockRaw = Array.isArray(almacen?.['stock']) ? almacen['stock'] : [];
+
+    const stock = stockRaw
+      .map((item) => this.normalizeStockItem(item))
+      .filter((item): item is ProductoStockAlmacenItem => item !== null);
+
+    const totalFromApi = this.toNumber(almacen?.['total']);
+    const totalFromStock = stock.reduce((sum, item) => sum + item.cantidad, 0);
+
+    return {
+      color,
+      imagen,
+      total: Math.max(0, totalFromApi ?? totalFromStock),
+      stock
+    };
+  }
+
+  private normalizeStockItem(value: unknown): ProductoStockAlmacenItem | null {
+    const record = this.asRecord(value);
+    if (!record) {
+      return null;
+    }
+
+    return {
+      nombre: this.toString(record['nombre']),
+      local: this.toNumber(record['local']) ?? 0,
+      estatus: this.toNumber(record['estatus']) ?? 0,
+      cantidad: Math.max(0, this.toNumber(record['cantidad']) ?? 0),
+      diasLlegada: Math.max(0, this.toNumber(record['dias_llegada']) ?? 0),
+      horaCierre: this.toString(record['hora_cierre'])
+    };
   }
 
   private extractArray(response: unknown): unknown[] {
@@ -155,7 +278,8 @@ export class CotizacionProductosService {
       clave,
       nombre,
       precioUnitario: Math.max(precioUnitario, 0),
-      imagen: this.normalizeImagenUrl(imagenRaw)
+      imagen: this.normalizeImagenUrl(imagenRaw),
+      id_almacen: this.toNumber(record['id_almacen']) ?? 0
     };
   }
 
