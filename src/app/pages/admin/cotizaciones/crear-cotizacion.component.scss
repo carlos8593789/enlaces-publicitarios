@@ -5,6 +5,40 @@
   background: #f8fbff;
 }
 
+.cliente-buscador {
+  border: 1px solid #e0e8f5;
+  border-radius: 0.5rem;
+  background: #fbfdff;
+  padding: 0.9rem;
+}
+
+.lista-clientes {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.cliente-item {
+  width: 100%;
+  border: 1px solid #dbe4ef;
+  border-radius: 0.5rem;
+  background: #fff;
+  text-align: left;
+  padding: 0.75rem;
+}
+
+.cliente-item:hover {
+  background: #f7fbff;
+  border-color: #b9cbe6;
+}
+
+.cotizacion-meta {
+  border-top: 1px solid #e6edf8;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
 .lista-resultados {
   max-height: 280px;
   overflow: auto;

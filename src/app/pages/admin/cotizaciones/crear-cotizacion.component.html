@@ -6,7 +6,39 @@
         <span class="badge text-bg-light border">IVA {{ ivaRate * 100 }}%</span>
       </div>
 
-      <p class="text-muted small mb-2">Cliente asignado para esta cotizacion (solo lectura).</p>
+      <p class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
+
+      <div class="cliente-buscador mt-3">
+        <label class="form-label small">Buscar cliente</label>
+        <div class="input-group mb-2">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Buscar por nombre, telefono o correo"
+            [(ngModel)]="terminoBusquedaCliente"
+            (input)="limpiarBusquedaCliente()"
+            (keyup.enter)="buscarClientes()"
+          />
+          <button class="btn btn-outline-primary" type="button" (click)="buscarClientes()" [disabled]="buscandoClientes">
+            {{ buscandoClientes ? 'Buscando...' : 'Buscar cliente' }}
+          </button>
+        </div>
+
+        <div class="lista-clientes mb-2" *ngIf="clientesEncontrados.length > 0">
+          <button
+            type="button"
+            class="cliente-item"
+            *ngFor="let clienteEncontrado of clientesEncontrados"
+            (click)="seleccionarCliente(clienteEncontrado)"
+          >
+            <div class="fw-semibold">{{ clienteEncontrado.value }}</div>
+            <div class="small text-muted text-truncate">{{ clienteEncontrado.label }}</div>
+          </button>
+        </div>
+
+        <p *ngIf="clienteBusquedaError" class="text-danger small mb-0">{{ clienteBusquedaError }}</p>
+        <p *ngIf="clienteBusquedaInfo" class="text-success small mb-0">{{ clienteBusquedaInfo }}</p>
+      </div>
 
       <p *ngIf="clienteError" class="text-danger small mt-2 mb-0">{{ clienteError }}</p>
       <div *ngIf="isLoadingCliente" class="text-muted small mt-2">Cargando cliente...</div>
@@ -28,6 +60,55 @@
           <div class="col-12 col-md-3" *ngIf="clienteId !== null">
             <span class="text-muted d-block small">ID Cliente</span>
             <strong>#{{ clienteId }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="cotizacion-meta mt-3">
+        <h3 class="h6 mb-3">Datos de la cotizacion</h3>
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label small">Riesgos</label>
+            <textarea
+              class="form-control"
+              rows="2"
+              [(ngModel)]="riesgos"
+              placeholder="Ej. Sujeto a disponibilidad de inventario"
+            ></textarea>
+          </div>
+          <div class="col-12 col-lg-6">
+            <label class="form-label small">Condiciones de venta</label>
+            <select
+              class="form-select mb-2"
+              [(ngModel)]="idCondicionVentaSeleccionada"
+              (ngModelChange)="seleccionarCondicionVenta($event)"
+            >
+              <option value="">Selecciona una condicion de venta</option>
+              <option *ngFor="let condicion of condicionesVentaCatalogo" [value]="condicion.id">
+                {{ condicion.nombre }}
+              </option>
+            </select>
+            <div *ngIf="cargandoCondicionesVenta" class="text-muted small mb-2">Cargando condiciones de venta...</div>
+            <p *ngIf="condicionesVentaError" class="text-danger small mb-2">{{ condicionesVentaError }}</p>
+            <textarea
+              class="form-control"
+              rows="3"
+              [(ngModel)]="condicionesVenta"
+              placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
+            ></textarea>
+          </div>
+
+          <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="permitirPago"
+                [(ngModel)]="permitirPago"
+              />
+              <label class="form-check-label" for="permitirPago">Permitir pago</label>
+            </div>
           </div>
         </div>
       </div>
@@ -59,15 +140,15 @@
         >
           <div class="producto-item-main">
             <ng-container *ngIf="producto.imagen; else sinImagenBusqueda">
-              <img [src]="producto.imagen" [alt]="producto.nombre" class="producto-thumb" />
+              <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
             </ng-container>
             <ng-template #sinImagenBusqueda>
               <div class="producto-thumb-placeholder">Sin imagen</div>
             </ng-template>
 
             <div>
-              <div class="producto-label">{{ producto.clave }}</div>
-              <div class="small text-muted">{{ producto.nombre }}</div>
+              <div class="producto-label">{{ producto.value }}</div>
+              <div class="small text-muted">{{ producto.label }}</div>
             </div>
           </div>
 
@@ -123,14 +204,14 @@
                   <td>
                     <div class="producto-cell">
                       <ng-container *ngIf="linea.imagen; else sinImagenProducto">
-                        <img [src]="linea.imagen" [alt]="linea.nombre" class="producto-thumb" />
+                        <img [src]="linea.imagen" [alt]="linea.value" class="producto-thumb" />
                       </ng-container>
                       <ng-template #sinImagenProducto>
                         <div class="producto-thumb-placeholder">Sin imagen</div>
                       </ng-template>
                       <div>
-                        <div class="fw-semibold">{{ linea.clave }}</div>
-                        <div class="small text-muted">{{ linea.nombre }}</div>
+                        <div class="fw-semibold">{{ linea.value }}</div>
+                        <div class="small text-muted">{{ linea.label }}</div>
                         <div
                           class="small text-secondary"
                           *ngIf="linea.coloresSeleccionados?.length"
@@ -178,6 +259,18 @@
             <div>Subtotal: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
             <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
             <div class="fs-5 mt-1">Total: <strong>{{ total | currency: 'MXN' }}</strong></div>
+
+            <button
+              type="button"
+              class="btn btn-success w-100 mt-3"
+              (click)="crearCotizacion()"
+              [disabled]="creandoCotizacion || lineasCotizacion.length === 0 || clienteId === null"
+            >
+              {{ creandoCotizacion ? 'Creando cotizacion...' : 'Crear cotizacion' }}
+            </button>
+
+            <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
+            <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">{{ crearCotizacionExito }}</p>
           </div>
         </div>
       </div>
@@ -195,14 +288,14 @@
 
     <div *ngIf="productoSeleccionado as producto" class="d-flex gap-2 align-items-center mb-3">
       <ng-container *ngIf="producto.imagen; else sinImagenModal">
-        <img [src]="producto.imagen" [alt]="producto.nombre" class="producto-thumb" />
+        <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
       </ng-container>
       <ng-template #sinImagenModal>
         <div class="producto-thumb-placeholder">Sin imagen</div>
       </ng-template>
       <div>
-        <div class="fw-semibold">{{ producto.clave }}</div>
-        <div class="small text-muted">{{ producto.nombre }}</div>
+        <div class="fw-semibold">{{ producto.value }}</div>
+        <div class="small text-muted">{{ producto.label }}</div>
         <div class="small text-muted">Stock local: {{ stockLocalProducto }}</div>
       </div>
     </div>

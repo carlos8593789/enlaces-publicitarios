@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
-import { ClienteDetalle, ClienteService } from '../../../services/cliente.service';
+import { ClienteBusquedaItem, ClienteDetalle, ClienteService } from '../../../services/cliente.service';
+import { environment } from '../../../../environments/environment';
 import {
   CotizacionColorSeleccion,
   CotizacionLinea,
@@ -11,8 +12,16 @@ import {
 } from '../../../models/cotizacion-producto.model';
 import {
   CotizacionProductosService,
+  ProductoBusquedaResponse,
+  ProductoPrecioResponse,
+  ProductoStockResponse,
   ProductoStockColor
 } from '../../../services/cotizacion-productos.service';
+import {
+  CondicionVentaItem,
+  CondicionesVentaService
+} from '../../../services/condiciones-venta.service';
+import { CotizacionesService, CrearCotizacionPayload, CrearCotizacionResponse } from '../../../services/cotizaciones.service';
 
 interface StockColorItem extends ProductoStockColor {
   cantidadSeleccionada: number;
@@ -28,7 +37,9 @@ interface StockColorItem extends ProductoStockColor {
 export class CrearCotizacionComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly clienteService = inject(ClienteService);
+  private readonly condicionesVentaService = inject(CondicionesVentaService);
   private readonly productosService = inject(CotizacionProductosService);
+  private readonly cotizacionesService = inject(CotizacionesService);
 
   readonly ivaRate = 0.16;
 
@@ -36,6 +47,11 @@ export class CrearCotizacionComponent implements OnInit {
   cliente: ClienteDetalle | null = null;
   isLoadingCliente = false;
   clienteError = '';
+  terminoBusquedaCliente = '';
+  buscandoClientes = false;
+  clientesEncontrados: ClienteBusquedaItem[] = [];
+  clienteBusquedaError = '';
+  clienteBusquedaInfo = '';
 
   terminoBusqueda = '';
   buscandoProductos = false;
@@ -53,7 +69,19 @@ export class CrearCotizacionComponent implements OnInit {
 
   lineasCotizacion: CotizacionLinea[] = [];
 
+  permitirPago = true;
+  riesgos = '';
+  condicionesVenta = '';
+  condicionesVentaCatalogo: CondicionVentaItem[] = [];
+  idCondicionVentaSeleccionada = '';
+  cargandoCondicionesVenta = false;
+  condicionesVentaError = '';
+  creandoCotizacion = false;
+  crearCotizacionError = '';
+  crearCotizacionExito = '';
+
   ngOnInit(): void {
+    this.cargarCondicionesVenta();
     this.loadClienteFromQueryParam();
   }
 
@@ -88,6 +116,93 @@ export class CrearCotizacionComponent implements OnInit {
     });
   }
 
+  seleccionarCondicionVenta(idCondicion: string): void {
+    this.idCondicionVentaSeleccionada = idCondicion;
+
+    const condicionId = Number(idCondicion);
+    if (!Number.isFinite(condicionId)) {
+      this.condicionesVenta = '';
+      return;
+    }
+
+    const condicion = this.condicionesVentaCatalogo.find((item) => item.id === condicionId);
+    this.condicionesVenta = condicion?.comentarios ?? '';
+  }
+
+  buscarClientes(): void {
+    const term = this.terminoBusquedaCliente.trim();
+    if (!term) {
+      this.clienteBusquedaError = 'Escribe al menos un dato para buscar el cliente.';
+      this.clienteBusquedaInfo = '';
+      this.clientesEncontrados = [];
+      return;
+    }
+
+    this.buscandoClientes = true;
+    this.clienteBusquedaError = '';
+    this.clienteBusquedaInfo = '';
+    this.clientesEncontrados = [];
+
+    this.clienteService.searchClientes(term).subscribe({
+      next: (clientes) => {
+        if (clientes.length === 0) {
+          this.clienteBusquedaError = 'No se encontraron clientes con ese criterio.';
+          this.buscandoClientes = false;
+          return;
+        }
+
+        this.clientesEncontrados = clientes;
+        this.clienteBusquedaInfo = `${clientes.length} cliente(s) encontrado(s).`;
+        this.buscandoClientes = false;
+      },
+      error: () => {
+        this.clienteBusquedaError = 'No se pudieron buscar clientes.';
+        this.buscandoClientes = false;
+      }
+    });
+  }
+
+  private cargarCondicionesVenta(): void {
+    this.cargandoCondicionesVenta = true;
+    this.condicionesVentaError = '';
+
+    this.condicionesVentaService.getCondicionesVenta().subscribe({
+      next: (condiciones) => {
+        this.condicionesVentaCatalogo = condiciones;
+        this.cargandoCondicionesVenta = false;
+      },
+      error: () => {
+        this.condicionesVentaCatalogo = [];
+        this.condicionesVentaError = 'No fue posible cargar las condiciones de venta.';
+        this.cargandoCondicionesVenta = false;
+      }
+    });
+  }
+
+  seleccionarCliente(cliente: ClienteBusquedaItem): void {
+    this.clienteId = cliente.id;
+    this.cliente = {
+      id: cliente.id,
+      nombre: cliente.value,
+      email: cliente.email,
+      empresa: '',
+      telefono: cliente.telefono,
+      celular: '',
+      telefono_contacto: cliente.telefono
+    };
+    this.clienteError = '';
+    this.clienteBusquedaError = '';
+    this.clienteBusquedaInfo = `Cliente seleccionado: ${cliente.label}`;
+    this.terminoBusquedaCliente = cliente.label;
+    this.clientesEncontrados = [];
+  }
+
+  limpiarBusquedaCliente(): void {
+    this.clienteBusquedaError = '';
+    this.clienteBusquedaInfo = '';
+    this.clientesEncontrados = [];
+  }
+
   buscarProductos(): void {
     const term = this.terminoBusqueda.trim();
     if (!term) {
@@ -103,7 +218,8 @@ export class CrearCotizacionComponent implements OnInit {
     this.productosEncontrados = [];
 
     this.productosService.searchProductos(term).subscribe({
-      next: (productos) => {
+      next: (response: ProductoBusquedaResponse) => {
+        const productos = this.normalizarProductosBusqueda(response);
         if (productos.length === 0) {
           this.productosError = 'No se encontraron productos con ese criterio.';
           this.buscandoProductos = false;
@@ -132,9 +248,10 @@ export class CrearCotizacionComponent implements OnInit {
     this.stockLocalProducto = 0;
 
     this.productosService.getProductoStock(producto.id).subscribe({
-      next: (response) => {
-        this.coloresStockProducto = response.almacenes.map((item) => ({ ...item, cantidadSeleccionada: 0 }));
-        this.stockLocalProducto = response.stockLocal;
+      next: (response: ProductoStockResponse) => {
+        const stockNormalizado = this.normalizarStockProducto(response);
+        this.coloresStockProducto = stockNormalizado.almacenes.map((item) => ({ ...item, cantidadSeleccionada: 0 }));
+        this.stockLocalProducto = stockNormalizado.stockLocal;
         this.cargandoStockProducto = false;
       },
       error: () => {
@@ -154,16 +271,17 @@ export class CrearCotizacionComponent implements OnInit {
     this.stockLocalProducto = 0;
 
     this.productosService.getProductoStock(linea.id).subscribe({
-      next: (response) => {
+      next: (response: ProductoStockResponse) => {
+        const stockNormalizado = this.normalizarStockProducto(response);
         const cantidadesActuales = new Map(
           (linea.coloresSeleccionados ?? []).map((item) => [item.color, item.cantidad])
         );
 
-        this.coloresStockProducto = response.almacenes.map((item) => ({
+        this.coloresStockProducto = stockNormalizado.almacenes.map((item) => ({
           ...item,
           cantidadSeleccionada: cantidadesActuales.get(item.color) ?? 0
         }));
-        this.stockLocalProducto = response.stockLocal;
+        this.stockLocalProducto = stockNormalizado.stockLocal;
         this.cargandoStockProducto = false;
       },
       error: () => {
@@ -211,7 +329,8 @@ export class CrearCotizacionComponent implements OnInit {
     this.stockProductoError = '';
 
     this.productosService.getProductoPrecio(this.productoSeleccionado.id, this.clienteId, cantidad).subscribe({
-      next: (precioUnitario) => {
+      next: (response: ProductoPrecioResponse) => {
+        const precioUnitario = this.normalizarPrecioProducto(response);
         const producto = this.productoSeleccionado;
         if (!producto) {
           this.calculandoPrecioProducto = false;
@@ -222,14 +341,14 @@ export class CrearCotizacionComponent implements OnInit {
 
         if (lineaEditando) {
           this.actualizarLineaDesdeModal(lineaEditando, cantidad, coloresSeleccionados, precioUnitario);
-          this.busquedaInfo = `Se actualizo ${cantidad} pza(s) de: ${producto.clave}`;
+          this.busquedaInfo = `Se actualizo ${cantidad} pza(s) de: ${producto.value}`;
           this.calculandoPrecioProducto = false;
           this.cerrarModalCantidad();
           return;
         }
 
         this.agregarProducto(producto, cantidad, coloresSeleccionados, precioUnitario);
-        this.busquedaInfo = `Se agrego ${cantidad} pza(s) de: ${producto.clave}`;
+        this.busquedaInfo = `Se agrego ${cantidad} pza(s) de: ${producto.value}`;
         this.productosEncontrados = [];
         this.terminoBusqueda = '';
         this.calculandoPrecioProducto = false;
@@ -258,7 +377,7 @@ export class CrearCotizacionComponent implements OnInit {
     producto: CotizacionProducto,
     cantidad = 1,
     coloresSeleccionados: CotizacionColorSeleccion[] = [],
-    precioUnitario = producto.precioUnitario
+    precioUnitario = 0
   ): void {
     const cantidadValida = Number.isFinite(cantidad) ? Math.max(1, Math.floor(cantidad)) : 1;
     const existente = this.lineasCotizacion.find((linea) => linea.id === producto.id);
@@ -292,7 +411,8 @@ export class CrearCotizacionComponent implements OnInit {
     }
 
     this.productosService.getProductoPrecio(linea.id, this.clienteId, cantidadValida).subscribe({
-      next: (precioUnitario) => {
+      next: (response: ProductoPrecioResponse) => {
+        const precioUnitario = this.normalizarPrecioProducto(response);
         linea.precioUnitario = precioUnitario;
       }
     });
@@ -308,6 +428,51 @@ export class CrearCotizacionComponent implements OnInit {
 
   limpiarCotizacion(): void {
     this.lineasCotizacion = [];
+  }
+
+  crearCotizacion(): void {
+    this.crearCotizacionError = '';
+    this.crearCotizacionExito = '';
+
+    if (this.clienteId === null) {
+      this.crearCotizacionError = 'No se encontro un cliente valido para crear la cotizacion.';
+      return;
+    }
+
+    if (this.lineasCotizacion.length === 0) {
+      this.crearCotizacionError = 'Agrega al menos un producto antes de crear la cotizacion.';
+      return;
+    }
+
+    const payload: CrearCotizacionPayload = {
+      id_cliente: this.clienteId,
+      observaciones: '',
+      permitir_pago: this.permitirPago,
+      riesgos: this.riesgos.trim(),
+      condiciones_venta: this.condicionesVenta.trim(),
+      id_vendedor_sugerido: this.clienteId,
+      productos: this.lineasCotizacion.map((linea) => ({
+        id_producto: linea.id,
+        producto_color_cantidad: this.formatearProductoColorCantidad(linea.coloresSeleccionados),
+        descripcion: linea.label,
+        porcentaje_descuento: 0,
+        cantidad: linea.cantidad
+      }))
+    };
+
+    this.creandoCotizacion = true;
+
+    this.cotizacionesService.createCotizacion(payload).subscribe({
+      next: (response: CrearCotizacionResponse) => {
+        this.crearCotizacionExito = `${response.message} #${response.data.id_cotizacion}`;
+        this.lineasCotizacion = [];
+        this.creandoCotizacion = false;
+      },
+      error: () => {
+        this.crearCotizacionError = 'No se pudo crear la cotizacion. Intenta nuevamente.';
+        this.creandoCotizacion = false;
+      }
+    });
   }
 
   get subtotal(): number {
@@ -372,11 +537,97 @@ export class CrearCotizacionComponent implements OnInit {
     return `${totalColores} color(es) / ${totalPiezas} pieza(s)`;
   }
 
+  private normalizarProductosBusqueda(response: ProductoBusquedaResponse): CotizacionProducto[] {
+    const items = Array.isArray(response.data) ? response.data : [];
+
+    const parsed = items
+      .filter((item): item is NonNullable<typeof item> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .map((item) => ({
+        id: Number(item.id ?? 0),
+        value: typeof item.value === 'string' ? item.value.trim() : '',
+        label: typeof item.label === 'string' ? item.label.trim() : '',
+        imagen: typeof item.imagen === 'string' ? item.imagen : '',
+        id_almacen: Number(item.id_almacen ?? 0)
+      }))
+      .filter((item) => Number.isFinite(item.id) && item.value && item.label)
+      .map((item) => ({
+        id: item.id,
+        value: item.value,
+        label: item.label,
+        imagen: this.normalizarImagenProducto(item.imagen),
+        id_almacen: Number.isFinite(item.id_almacen) ? item.id_almacen : 0
+      }));
+
+    const productos = Array.from(new Map(parsed.map((item) => [item.id, item] as const)).values());
+    const normalizedTerm = this.terminoBusqueda.trim().toLowerCase();
+
+    if (!normalizedTerm) {
+      return productos;
+    }
+
+    return productos.filter((producto) => `${producto.value} ${producto.label}`.toLowerCase().includes(normalizedTerm));
+  }
+
+  private normalizarStockProducto(response: ProductoStockResponse): { almacenes: ProductoStockColor[]; stockLocal: number } {
+    const almacenes = Array.isArray(response.data?.almacenes) ? response.data.almacenes : [];
+
+    const almacenesNormalizados = almacenes
+      .filter((item): item is NonNullable<typeof item> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .map((item) => {
+        const almacen = item.almacen;
+        const stock = Array.isArray(almacen?.stock)
+          ? almacen.stock
+              .filter((stockItem): stockItem is NonNullable<typeof stockItem> => !!stockItem && typeof stockItem === 'object' && !Array.isArray(stockItem))
+              .map((stockItem) => ({
+                nombre: typeof stockItem.nombre === 'string' ? stockItem.nombre.trim() : '',
+                local: Number.isFinite(Number(stockItem.local ?? 0)) ? Number(stockItem.local ?? 0) : 0,
+                estatus: Number.isFinite(Number(stockItem.estatus ?? 0)) ? Number(stockItem.estatus ?? 0) : 0,
+                cantidad: Math.max(0, Number.isFinite(Number(stockItem.cantidad ?? 0)) ? Number(stockItem.cantidad ?? 0) : 0),
+                diasLlegada: Math.max(0, Number.isFinite(Number(stockItem.dias_llegada ?? 0)) ? Number(stockItem.dias_llegada ?? 0) : 0),
+                horaCierre: typeof stockItem.hora_cierre === 'string' ? stockItem.hora_cierre.trim() : ''
+              }))
+          : [];
+
+        const totalFromApi = Number(almacen?.total ?? 0);
+        const totalFromStock = stock.reduce((sum, item) => sum + item.cantidad, 0);
+
+        return {
+          color: typeof item.color === 'string' && item.color.trim() ? item.color.trim() : 'POR DEFINIR',
+          imagen: this.normalizarImagenProducto(typeof item.imagen === 'string' ? item.imagen : ''),
+          total: Math.max(0, Number.isFinite(totalFromApi) ? totalFromApi : totalFromStock),
+          stock
+        };
+      });
+
+    return {
+      almacenes: almacenesNormalizados,
+      stockLocal: Math.max(0, Number(response.data?.stockLocal ?? 0) || 0)
+    };
+  }
+
+  private normalizarPrecioProducto(response: ProductoPrecioResponse): number {
+    const precio = Number(response.data?.precio ?? 0);
+    return Math.max(0, Number.isFinite(precio) ? precio : 0);
+  }
+
+  private normalizarImagenProducto(imagen: string): string {
+    const clean = imagen.trim();
+    if (!clean) {
+      return '';
+    }
+
+    if (/^(https?:)?\/\//i.test(clean) || clean.startsWith('data:') || clean.startsWith('blob:')) {
+      return clean;
+    }
+
+    const normalizedPath = clean.replace(/^\/+/, '');
+    return `${environment.apiEnlacesUrl}/images/productos/${normalizedPath}`;
+  }
+
   private loadClienteFromQueryParam(): void {
     const rawId = this.route.snapshot.queryParamMap.get('idCliente');
     if (!rawId) {
-      this.clienteError = 'No se recibio el idCliente en la URL. En esta pantalla no se puede cambiar el cliente.';
-      this.cliente = null;
+      this.clienteError = 'No se recibio el idCliente en la URL. Puedes buscar y seleccionar un cliente manualmente.';
       return;
     }
 
@@ -389,6 +640,17 @@ export class CrearCotizacionComponent implements OnInit {
 
     this.clienteId = idCliente;
     this.cargarCliente(idCliente);
+  }
+
+  private formatearProductoColorCantidad(colores: CotizacionColorSeleccion[] | undefined): string {
+    if (!colores || colores.length === 0) {
+      return '';
+    }
+
+    return colores
+      .filter((item) => item.cantidad > 0)
+      .map((item) => `${item.color}:${item.cantidad}`)
+      .join(',');
   }
 
   private mezclarColoresSeleccionados(

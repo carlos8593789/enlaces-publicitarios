@@ -1,8 +1,7 @@
 export interface CotizacionProducto {
   id: number;
-  clave: string;
-  nombre: string;
-  precioUnitario: number;
+  value: string;
+  label: string;
   imagen: string;
   id_almacen: number;
 }
@@ -14,5 +13,6 @@ export interface CotizacionColorSeleccion {
 
 export interface CotizacionLinea extends CotizacionProducto {
   cantidad: number;
+  precioUnitario: number;
   coloresSeleccionados?: CotizacionColorSeleccion[];
 }
