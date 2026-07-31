@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { forkJoin } from 'rxjs';
 
 import { ClienteBusquedaItem, ClienteDetalle, ClienteService } from '../../../services/cliente.service';
 import { environment } from '../../../../environments/environment';
@@ -10,6 +10,7 @@ import {
   CotizacionLinea,
   CotizacionProducto
 } from '../../../models/cotizacion-producto.model';
+import { TecnicaImpresionApiItem, TecnicaImpresionSeleccion } from '../../../models/tecnicas-impresion.model';
 import {
   CotizacionProductosService,
   ProductoBusquedaResponse,
@@ -22,6 +23,10 @@ import {
   CondicionesVentaService
 } from '../../../services/condiciones-venta.service';
 import { CotizacionesService, CrearCotizacionPayload, CrearCotizacionResponse } from '../../../services/cotizaciones.service';
+import {
+  TecnicaImpresionPrecioResponse,
+  TecnicasImpresionService
+} from '../../../services/tecnicas-impresion.service';
 
 interface StockColorItem extends ProductoStockColor {
   cantidadSeleccionada: number;
@@ -35,11 +40,11 @@ interface StockColorItem extends ProductoStockColor {
   styleUrl: './crear-cotizacion.component.scss'
 })
 export class CrearCotizacionComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
   private readonly clienteService = inject(ClienteService);
   private readonly condicionesVentaService = inject(CondicionesVentaService);
   private readonly productosService = inject(CotizacionProductosService);
   private readonly cotizacionesService = inject(CotizacionesService);
+  private readonly tecnicasImpresionService = inject(TecnicasImpresionService);
 
   readonly ivaRate = 0.16;
 
@@ -66,8 +71,25 @@ export class CrearCotizacionComponent implements OnInit {
   stockProductoError = '';
   coloresStockProducto: StockColorItem[] = [];
   stockLocalProducto = 0;
+  confirmarTecnicasImpresionAbierto = false;
+  modalTecnicasImpresionAbierto = false;
+  cargandoTecnicasImpresion = false;
+  calculandoPrecioTecnicas = false;
+  tecnicasImpresionError = '';
+  tecnicasImpresionCatalogo: TecnicaImpresionSeleccion[] = [];
+
+  productoPendienteAgregar:
+    | {
+        producto: CotizacionProducto;
+        cantidad: number;
+        coloresSeleccionados: CotizacionColorSeleccion[];
+        precioUnitario: number;
+        montoReglaNegocio: number;
+      }
+    | null = null;
 
   lineasCotizacion: CotizacionLinea[] = [];
+  idsAlmacenCotizacion: number[] = [];
 
   permitirPago = true;
   riesgos = '';
@@ -82,7 +104,6 @@ export class CrearCotizacionComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarCondicionesVenta();
-    this.loadClienteFromQueryParam();
   }
 
   get clienteTelefono(): string {
@@ -97,23 +118,6 @@ export class CrearCotizacionComponent implements OnInit {
       '';
 
     return telefono || 'Sin telefono';
-  }
-
-  private cargarCliente(idCliente: number): void {
-    this.isLoadingCliente = true;
-    this.clienteError = '';
-
-    this.clienteService.getClienteById(idCliente).subscribe({
-      next: (response) => {
-        this.cliente = response.data;
-        this.isLoadingCliente = false;
-      },
-      error: () => {
-        this.clienteError = 'No fue posible cargar la informacion del cliente.';
-        this.cliente = null;
-        this.isLoadingCliente = false;
-      }
-    });
   }
 
   seleccionarCondicionVenta(idCondicion: string): void {
@@ -180,6 +184,13 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   seleccionarCliente(cliente: ClienteBusquedaItem): void {
+    const cambioCliente = this.clienteId !== null && this.clienteId !== cliente.id;
+
+    if (cambioCliente && this.lineasCotizacion.length > 0) {
+      this.limpiarCotizacion();
+      this.busquedaInfo = 'Se vacio la cotizacion al cambiar de cliente para recalcular precios.';
+    }
+
     this.clienteId = cliente.id;
     this.cliente = {
       id: cliente.id,
@@ -239,6 +250,11 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   abrirModalCantidad(producto: CotizacionProducto): void {
+    if (this.clienteId === null) {
+      this.productosError = 'Debes seleccionar un cliente antes de agregar productos.';
+      return;
+    }
+
     this.lineaEditando = null;
     this.productoSeleccionado = producto;
     this.modalCantidadAbierto = true;
@@ -328,9 +344,16 @@ export class CrearCotizacionComponent implements OnInit {
     this.calculandoPrecioProducto = true;
     this.stockProductoError = '';
 
-    this.productosService.getProductoPrecio(this.productoSeleccionado.id, this.clienteId, cantidad).subscribe({
+    const idsAlmacenes = this.obtenerIdsAlmacenParaPrecio(this.productoSeleccionado.id_almacen);
+
+    this.productosService.getProductoPrecio(
+      this.productoSeleccionado.id,
+      this.clienteId,
+      cantidad,
+      idsAlmacenes
+    ).subscribe({
       next: (response: ProductoPrecioResponse) => {
-        const precioUnitario = this.normalizarPrecioProducto(response);
+        const { precioUnitario, montoReglaNegocio } = this.normalizarPrecioProducto(response);
         const producto = this.productoSeleccionado;
         if (!producto) {
           this.calculandoPrecioProducto = false;
@@ -340,19 +363,23 @@ export class CrearCotizacionComponent implements OnInit {
         const lineaEditando = this.lineaEditando;
 
         if (lineaEditando) {
-          this.actualizarLineaDesdeModal(lineaEditando, cantidad, coloresSeleccionados, precioUnitario);
+          this.actualizarLineaDesdeModal(lineaEditando, cantidad, coloresSeleccionados, precioUnitario, montoReglaNegocio);
           this.busquedaInfo = `Se actualizo ${cantidad} pza(s) de: ${producto.value}`;
           this.calculandoPrecioProducto = false;
           this.cerrarModalCantidad();
           return;
         }
 
-        this.agregarProducto(producto, cantidad, coloresSeleccionados, precioUnitario);
-        this.busquedaInfo = `Se agrego ${cantidad} pza(s) de: ${producto.value}`;
-        this.productosEncontrados = [];
-        this.terminoBusqueda = '';
         this.calculandoPrecioProducto = false;
+        this.productoPendienteAgregar = {
+          producto,
+          cantidad,
+          coloresSeleccionados,
+          precioUnitario,
+          montoReglaNegocio
+        };
         this.cerrarModalCantidad();
+        this.confirmarTecnicasImpresionAbierto = true;
       },
       error: () => {
         this.stockProductoError = 'No se pudo calcular el precio del producto.';
@@ -373,21 +400,146 @@ export class CrearCotizacionComponent implements OnInit {
     this.productosEncontrados = [];
   }
 
+  cancelarConfirmacionTecnicas(): void {
+    this.confirmarTecnicasImpresionAbierto = false;
+    this.productoPendienteAgregar = null;
+  }
+
+  confirmarAgregarSinTecnicas(): void {
+    const pendiente = this.productoPendienteAgregar;
+    if (!pendiente) {
+      this.cancelarConfirmacionTecnicas();
+      return;
+    }
+
+    this.confirmarTecnicasImpresionAbierto = false;
+    this.finalizarAgregarProducto(pendiente, []);
+  }
+
+  abrirModalTecnicasImpresion(): void {
+    const pendiente = this.productoPendienteAgregar;
+    if (!pendiente) {
+      this.cancelarConfirmacionTecnicas();
+      return;
+    }
+
+    this.confirmarTecnicasImpresionAbierto = false;
+    this.modalTecnicasImpresionAbierto = true;
+    this.cargandoTecnicasImpresion = true;
+    this.tecnicasImpresionError = '';
+    this.tecnicasImpresionCatalogo = [];
+
+    this.tecnicasImpresionService.getTecnicasImpresion(pendiente.producto.id).subscribe({
+      next: (response) => {
+        const tecnicas = this.normalizarTecnicasImpresion(response.data);
+        this.tecnicasImpresionCatalogo = tecnicas.map((item) => ({
+          ...item,
+          seleccionada: false,
+          piezasSeleccionadas: 0,
+          tintasSeleccionadas: item.cantidad_tintas > 0 ? 1 : 0,
+          posicionesSeleccionadas: item.cantidad_posiciones > 0 ? 1 : 0
+        }));
+        this.cargandoTecnicasImpresion = false;
+      },
+      error: () => {
+        this.tecnicasImpresionError = 'No se pudieron cargar las tecnicas de impresion del producto.';
+        this.cargandoTecnicasImpresion = false;
+      }
+    });
+  }
+
+  cerrarModalTecnicasImpresion(): void {
+    this.modalTecnicasImpresionAbierto = false;
+    this.cargandoTecnicasImpresion = false;
+    this.calculandoPrecioTecnicas = false;
+    this.tecnicasImpresionError = '';
+    this.tecnicasImpresionCatalogo = [];
+    this.productoPendienteAgregar = null;
+  }
+
+  alternarTecnicaImpresion(item: TecnicaImpresionSeleccion, seleccionada: boolean): void {
+    item.seleccionada = seleccionada;
+
+    if (seleccionada) {
+      item.piezasSeleccionadas = 0;
+      item.tintasSeleccionadas = item.cantidad_tintas > 0 ? Math.max(1, item.tintasSeleccionadas || 1) : 0;
+      item.posicionesSeleccionadas = item.cantidad_posiciones > 0 ? Math.max(1, item.posicionesSeleccionadas || 1) : 0;
+      return;
+    }
+
+    item.piezasSeleccionadas = 0;
+    item.tintasSeleccionadas = 0;
+    item.posicionesSeleccionadas = 0;
+  }
+
+  actualizarPiezasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
+    const maximo = this.obtenerMaximoPiezasTecnica(item);
+    const cantidadNumerica = Number(cantidad);
+    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
+    item.piezasSeleccionadas = Math.min(cantidadValida, maximo);
+  }
+
+  actualizarTintasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
+    const maximo = Math.max(0, Math.floor(item.cantidad_tintas));
+    const cantidadNumerica = Number(cantidad);
+    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
+    item.tintasSeleccionadas = Math.min(cantidadValida, maximo);
+  }
+
+  actualizarPosicionesTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
+    const maximo = Math.max(0, Math.floor(item.cantidad_posiciones));
+    const cantidadNumerica = Number(cantidad);
+    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
+    item.posicionesSeleccionadas = Math.min(cantidadValida, maximo);
+  }
+
+  confirmarTecnicasSeleccionadas(): void {
+    const pendiente = this.productoPendienteAgregar;
+    if (!pendiente) {
+      this.cerrarModalTecnicasImpresion();
+      return;
+    }
+
+    const tecnicasSeleccionadas = this.tecnicasImpresionCatalogo.filter((item) => item.seleccionada);
+    const piezasTecnicas = this.obtenerTotalPiezasTecnicasSeleccionadas(tecnicasSeleccionadas);
+
+    if (piezasTecnicas <= 0) {
+      this.tecnicasImpresionError = 'Captura la cantidad de piezas para al menos una tecnica de impresion.';
+      return;
+    }
+
+    if (piezasTecnicas > pendiente.cantidad) {
+      this.tecnicasImpresionError = 'La cantidad de piezas con tecnica no puede superar el total del producto.';
+      return;
+    }
+
+    this.calcularPrecioTecnicasYFinalizar(pendiente, tecnicasSeleccionadas);
+  }
+
   agregarProducto(
     producto: CotizacionProducto,
     cantidad = 1,
     coloresSeleccionados: CotizacionColorSeleccion[] = [],
-    precioUnitario = 0
+    precioUnitario = 0,
+    montoReglaNegocio = 0,
+    tecnicasImpresion: TecnicaImpresionSeleccion[] = []
   ): void {
     const cantidadValida = Number.isFinite(cantidad) ? Math.max(1, Math.floor(cantidad)) : 1;
     const existente = this.lineasCotizacion.find((linea) => linea.id === producto.id);
     if (existente) {
       existente.cantidad += cantidadValida;
       existente.precioUnitario = precioUnitario;
+      existente.montoReglaNegocio = montoReglaNegocio;
+      existente.id_almacen = producto.id_almacen;
       existente.coloresSeleccionados = this.mezclarColoresSeleccionados(
         existente.coloresSeleccionados ?? [],
         coloresSeleccionados
       );
+      existente.tecnicasImpresion = this.mezclarTecnicasImpresionSeleccionadas(
+        existente.tecnicasImpresion ?? [],
+        tecnicasImpresion
+      );
+      this.sincronizarIdsAlmacenCotizacion();
       return;
     }
 
@@ -396,10 +548,14 @@ export class CrearCotizacionComponent implements OnInit {
       {
         ...producto,
         precioUnitario,
+        montoReglaNegocio,
         cantidad: cantidadValida,
-        coloresSeleccionados
+        coloresSeleccionados,
+        tecnicasImpresion
       }
     ];
+
+    this.sincronizarIdsAlmacenCotizacion();
   }
 
   actualizarCantidad(linea: CotizacionLinea, cantidad: number): void {
@@ -410,10 +566,13 @@ export class CrearCotizacionComponent implements OnInit {
       return;
     }
 
-    this.productosService.getProductoPrecio(linea.id, this.clienteId, cantidadValida).subscribe({
+    const idsAlmacenes = this.obtenerIdsAlmacenParaPrecio(linea.id_almacen);
+
+    this.productosService.getProductoPrecio(linea.id, this.clienteId, cantidadValida, idsAlmacenes).subscribe({
       next: (response: ProductoPrecioResponse) => {
-        const precioUnitario = this.normalizarPrecioProducto(response);
+        const { precioUnitario, montoReglaNegocio } = this.normalizarPrecioProducto(response);
         linea.precioUnitario = precioUnitario;
+        linea.montoReglaNegocio = montoReglaNegocio;
       }
     });
   }
@@ -424,10 +583,12 @@ export class CrearCotizacionComponent implements OnInit {
 
   eliminarProducto(idProducto: number): void {
     this.lineasCotizacion = this.lineasCotizacion.filter((linea) => linea.id !== idProducto);
+    this.sincronizarIdsAlmacenCotizacion();
   }
 
   limpiarCotizacion(): void {
     this.lineasCotizacion = [];
+    this.idsAlmacenCotizacion = [];
   }
 
   crearCotizacion(): void {
@@ -466,6 +627,7 @@ export class CrearCotizacionComponent implements OnInit {
       next: (response: CrearCotizacionResponse) => {
         this.crearCotizacionExito = `${response.message} #${response.data.id_cotizacion}`;
         this.lineasCotizacion = [];
+        this.idsAlmacenCotizacion = [];
         this.creandoCotizacion = false;
       },
       error: () => {
@@ -479,12 +641,20 @@ export class CrearCotizacionComponent implements OnInit {
     return this.lineasCotizacion.reduce((acc, linea) => acc + linea.precioUnitario * linea.cantidad, 0);
   }
 
+  get totalTecnicasImpresion(): number {
+    return this.lineasCotizacion.reduce((acc, linea) => acc + this.getTotalTecnicasPorLinea(linea), 0);
+  }
+
   get iva(): number {
     return this.subtotal * this.ivaRate;
   }
 
+  get totalMontoReglaNegocio(): number {
+    return this.lineasCotizacion.reduce((acc, linea) => acc + linea.montoReglaNegocio, 0);
+  }
+
   get total(): number {
-    return this.subtotal + this.iva;
+    return this.subtotal + this.iva + this.totalMontoReglaNegocio + this.totalTecnicasImpresion;
   }
 
   get cantidadTotalProductos(): number {
@@ -535,6 +705,73 @@ export class CrearCotizacionComponent implements OnInit {
     const totalColores = colores.length;
 
     return `${totalColores} color(es) / ${totalPiezas} pieza(s)`;
+  }
+
+  formatearTecnicasImpresion(tecnicas: TecnicaImpresionSeleccion[] | undefined): string {
+    if (!tecnicas || tecnicas.length === 0) {
+      return '';
+    }
+
+    return tecnicas
+      .map((item) => {
+        const resumen = [item.nombre];
+        if (item.piezasSeleccionadas > 0) {
+          resumen.push(`${item.piezasSeleccionadas} pieza(s)`);
+        }
+        if (item.tintasSeleccionadas > 0) {
+          resumen.push(`${item.tintasSeleccionadas} tinta(s)`);
+        }
+        if (item.posicionesSeleccionadas > 0) {
+          resumen.push(`${item.posicionesSeleccionadas} posicion(es)`);
+        }
+
+        return resumen.join(' / ');
+      })
+      .join(' | ');
+  }
+
+  getTotalTecnicasPorLinea(linea: CotizacionLinea): number {
+    return (linea.tecnicasImpresion ?? []).reduce((acc, tecnica) => acc + this.getTotalTecnica(tecnica), 0);
+  }
+
+  getTotalTecnica(tecnica: TecnicaImpresionSeleccion): number {
+    const precioUnitario = Math.max(0, Number(tecnica.precioUnitario ?? 0));
+    const piezas = Math.max(0, Number(tecnica.piezasSeleccionadas ?? 0));
+    const cargoExtra = Math.max(0, Number(tecnica.cargoExtra ?? 0));
+
+    return precioUnitario * piezas + cargoExtra;
+  }
+
+  obtenerOpcionesCantidad(maximo: number, minimo = 0): number[] {
+    const maximoNormalizado = Math.max(0, Math.floor(Number(maximo) || 0));
+    const minimoNormalizado = Math.max(0, Math.floor(Number(minimo) || 0));
+
+    if (maximoNormalizado < minimoNormalizado) {
+      return [];
+    }
+
+    return Array.from({ length: maximoNormalizado - minimoNormalizado + 1 }, (_valor, index) => minimoNormalizado + index);
+  }
+
+  obtenerTotalPiezasTecnicasSeleccionadas(tecnicas: TecnicaImpresionSeleccion[] | undefined = this.tecnicasImpresionCatalogo): number {
+    if (!tecnicas || tecnicas.length === 0) {
+      return 0;
+    }
+
+    return tecnicas.reduce((acc, item) => acc + Math.max(0, Math.floor(Number(item.piezasSeleccionadas) || 0)), 0);
+  }
+
+  obtenerMaximoPiezasTecnica(item: TecnicaImpresionSeleccion): number {
+    const productoCantidad = Math.max(0, Math.floor(Number(this.productoPendienteAgregar?.cantidad ?? 0)));
+    const piezasOtros = this.obtenerTotalPiezasTecnicasSeleccionadas(
+      this.tecnicasImpresionCatalogo.filter((tecnica) => tecnica.seleccionada && tecnica.id_tecnica !== item.id_tecnica)
+    );
+
+    return Math.max(0, productoCantidad - piezasOtros);
+  }
+
+  trackByTecnicaImpresion(_index: number, item: TecnicaImpresionSeleccion): number {
+    return item.id_tecnica;
   }
 
   private normalizarProductosBusqueda(response: ProductoBusquedaResponse): CotizacionProducto[] {
@@ -605,9 +842,38 @@ export class CrearCotizacionComponent implements OnInit {
     };
   }
 
-  private normalizarPrecioProducto(response: ProductoPrecioResponse): number {
+  private normalizarPrecioProducto(response: ProductoPrecioResponse): {
+    precioUnitario: number;
+    montoReglaNegocio: number;
+  } {
     const precio = Number(response.data?.precio ?? 0);
-    return Math.max(0, Number.isFinite(precio) ? precio : 0);
+    const montoReglaNegocio = Number(response.data?.monto_regla_negocio ?? 0);
+
+    return {
+      precioUnitario: Math.max(0, Number.isFinite(precio) ? precio : 0),
+      montoReglaNegocio: Math.max(0, Number.isFinite(montoReglaNegocio) ? montoReglaNegocio : 0)
+    };
+  }
+
+  private normalizarTecnicasImpresion(items: TecnicaImpresionApiItem[] | undefined): TecnicaImpresionApiItem[] {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items
+      .filter((item): item is TecnicaImpresionApiItem => !!item && typeof item === 'object' && !Array.isArray(item))
+      .map((item) => ({
+        numero: typeof item.numero === 'string' ? item.numero.trim() : '',
+        imagen: this.normalizarImagenTecnica(typeof item.imagen === 'string' ? item.imagen : ''),
+        id_tecnica: Number(item.id_tecnica ?? 0),
+        nombre: typeof item.nombre === 'string' ? item.nombre.trim() : '',
+        cantidad_posiciones: Math.max(
+          0,
+          Number.isFinite(Number(item.cantidad_posiciones ?? 0)) ? Number(item.cantidad_posiciones ?? 0) : 0
+        ),
+        cantidad_tintas: Math.max(0, Number.isFinite(Number(item.cantidad_tintas ?? 0)) ? Number(item.cantidad_tintas ?? 0) : 0)
+      }))
+      .filter((item) => Number.isFinite(item.id_tecnica) && item.nombre);
   }
 
   private normalizarImagenProducto(imagen: string): string {
@@ -624,22 +890,18 @@ export class CrearCotizacionComponent implements OnInit {
     return `${environment.apiEnlacesUrl}/images/productos/${normalizedPath}`;
   }
 
-  private loadClienteFromQueryParam(): void {
-    const rawId = this.route.snapshot.queryParamMap.get('idCliente');
-    if (!rawId) {
-      this.clienteError = 'No se recibio el idCliente en la URL. Puedes buscar y seleccionar un cliente manualmente.';
-      return;
+  private normalizarImagenTecnica(imagen: string): string {
+    const clean = imagen.trim();
+    if (!clean) {
+      return '';
     }
 
-    const idCliente = Number(rawId);
-    if (!Number.isFinite(idCliente) || idCliente <= 0) {
-      this.clienteError = 'El idCliente de la URL es invalido.';
-      this.cliente = null;
-      return;
+    if (/^(https?:)?\/\//i.test(clean) || clean.startsWith('data:') || clean.startsWith('blob:')) {
+      return clean;
     }
 
-    this.clienteId = idCliente;
-    this.cargarCliente(idCliente);
+    const normalizedPath = clean.replace(/^\/+/, '').replace(/^small_/, '');
+    return `${environment.apiEnlacesUrl}/images/tecnicas/small_${normalizedPath}`;
   }
 
   private formatearProductoColorCantidad(colores: CotizacionColorSeleccion[] | undefined): string {
@@ -670,14 +932,186 @@ export class CrearCotizacionComponent implements OnInit {
     return Array.from(merged.entries()).map(([color, cantidad]) => ({ color, cantidad }));
   }
 
+  private mezclarTecnicasImpresionSeleccionadas(
+    base: TecnicaImpresionSeleccion[],
+    incoming: TecnicaImpresionSeleccion[]
+  ): TecnicaImpresionSeleccion[] {
+    const merged = new Map<number, TecnicaImpresionSeleccion>();
+
+    base.forEach((item) => {
+      merged.set(item.id_tecnica, { ...item });
+    });
+
+    incoming.forEach((item) => {
+      const existente = merged.get(item.id_tecnica);
+      if (!existente) {
+        merged.set(item.id_tecnica, { ...item });
+        return;
+      }
+
+      existente.seleccionada = existente.seleccionada || item.seleccionada;
+      existente.piezasSeleccionadas = Math.max(existente.piezasSeleccionadas, item.piezasSeleccionadas);
+      existente.tintasSeleccionadas = Math.max(existente.tintasSeleccionadas, item.tintasSeleccionadas);
+      existente.posicionesSeleccionadas = Math.max(existente.posicionesSeleccionadas, item.posicionesSeleccionadas);
+      existente.precioUnitario = Math.max(Number(existente.precioUnitario ?? 0), Number(item.precioUnitario ?? 0));
+      existente.cargoExtra = Math.max(Number(existente.cargoExtra ?? 0), Number(item.cargoExtra ?? 0));
+    });
+
+    return Array.from(merged.values());
+  }
+
+  private calcularPrecioTecnicasYFinalizar(
+    pendiente: {
+      producto: CotizacionProducto;
+      cantidad: number;
+      coloresSeleccionados: CotizacionColorSeleccion[];
+      precioUnitario: number;
+      montoReglaNegocio: number;
+    },
+    tecnicasSeleccionadas: TecnicaImpresionSeleccion[]
+  ): void {
+    this.calculandoPrecioTecnicas = true;
+    this.tecnicasImpresionError = '';
+
+    const solicitudes = tecnicasSeleccionadas.map((tecnica) =>
+      this.tecnicasImpresionService.getPrecioTecnicaImpresion(
+        tecnica.id_tecnica,
+        tecnica.piezasSeleccionadas,
+        tecnica.posicionesSeleccionadas,
+        tecnica.tintasSeleccionadas
+      )
+    );
+
+    forkJoin(solicitudes).subscribe({
+      next: (responses) => {
+        const tecnicasConPrecio = tecnicasSeleccionadas.map((tecnica, index) => {
+          const precio = this.normalizarPrecioTecnicaImpresion(responses[index]);
+
+          return {
+            ...tecnica,
+            precioUnitario: precio.precioUnitario,
+            cargoExtra: precio.cargoExtra
+          };
+        });
+
+        this.calculandoPrecioTecnicas = false;
+        this.finalizarAgregarProducto(
+          {
+            ...pendiente,
+            precioUnitario: pendiente.precioUnitario
+          },
+          tecnicasConPrecio
+        );
+      },
+      error: () => {
+        this.calculandoPrecioTecnicas = false;
+        this.tecnicasImpresionError = 'No se pudo calcular el precio de las tecnicas de impresion.';
+      }
+    });
+  }
+
+  private finalizarAgregarProducto(
+    pendiente: {
+      producto: CotizacionProducto;
+      cantidad: number;
+      coloresSeleccionados: CotizacionColorSeleccion[];
+      precioUnitario: number;
+      montoReglaNegocio: number;
+    },
+    tecnicasSeleccionadas: TecnicaImpresionSeleccion[]
+  ): void {
+    this.modalTecnicasImpresionAbierto = false;
+    this.calculandoPrecioTecnicas = false;
+    const tecnicasNormalizadas = tecnicasSeleccionadas.map((item) => ({
+      ...item,
+      piezasSeleccionadas: Math.max(0, Math.floor(item.piezasSeleccionadas)),
+      tintasSeleccionadas: Math.max(0, Math.floor(item.tintasSeleccionadas)),
+      posicionesSeleccionadas: Math.max(0, Math.floor(item.posicionesSeleccionadas)),
+      precioUnitario: Math.max(0, Number(item.precioUnitario ?? 0)),
+      cargoExtra: Math.max(0, Number(item.cargoExtra ?? 0))
+    }));
+
+    this.agregarProducto(
+      pendiente.producto,
+      pendiente.cantidad,
+      pendiente.coloresSeleccionados,
+      pendiente.precioUnitario,
+      pendiente.montoReglaNegocio,
+      tecnicasNormalizadas
+    );
+
+    const resumenTecnicas = this.formatearResumenTecnicasImpresion(tecnicasNormalizadas);
+    this.busquedaInfo = `Se agrego ${pendiente.cantidad} pza(s) de: ${pendiente.producto.value}${resumenTecnicas}`;
+    this.productosEncontrados = [];
+    this.terminoBusqueda = '';
+    this.productoPendienteAgregar = null;
+    this.tecnicasImpresionCatalogo = [];
+    this.tecnicasImpresionError = '';
+  }
+
+  private normalizarPrecioTecnicaImpresion(response: TecnicaImpresionPrecioResponse): {
+    precioUnitario: number;
+    cargoExtra: number;
+  } {
+    const precio = Number(response.data?.precio ?? 0);
+    const cargoExtra = Number(response.data?.cargo_extra ?? 0);
+
+    return {
+      precioUnitario: Math.max(0, Number.isFinite(precio) ? precio : 0),
+      cargoExtra: Math.max(0, Number.isFinite(cargoExtra) ? cargoExtra : 0)
+    };
+  }
+
+  private formatearResumenTecnicasImpresion(tecnicas: TecnicaImpresionSeleccion[]): string {
+    if (!tecnicas || tecnicas.length === 0) {
+      return '';
+    }
+
+    const resumen = tecnicas.map((item) => {
+      const partes = [item.nombre];
+      if (item.tintasSeleccionadas > 0) {
+        partes.push(`${item.tintasSeleccionadas} tinta(s)`);
+      }
+      if (item.posicionesSeleccionadas > 0) {
+        partes.push(`${item.posicionesSeleccionadas} posicion(es)`);
+      }
+      return partes.join(' / ');
+    });
+
+    return ` con tecnica(s): ${resumen.join(' | ')}`;
+  }
+
   private actualizarLineaDesdeModal(
     linea: CotizacionLinea,
     cantidad: number,
     coloresSeleccionados: CotizacionColorSeleccion[],
-    precioUnitario: number
+    precioUnitario: number,
+    montoReglaNegocio: number
   ): void {
     linea.cantidad = cantidad;
     linea.coloresSeleccionados = coloresSeleccionados;
     linea.precioUnitario = precioUnitario;
+    linea.montoReglaNegocio = montoReglaNegocio;
+    this.sincronizarIdsAlmacenCotizacion();
+  }
+
+  private sincronizarIdsAlmacenCotizacion(): void {
+    this.idsAlmacenCotizacion = Array.from(
+      new Set(
+        this.lineasCotizacion
+          .map((linea) => Number(linea.id_almacen))
+          .filter((idAlmacen) => Number.isFinite(idAlmacen) && idAlmacen > 0)
+      )
+    );
+  }
+
+  private obtenerIdsAlmacenParaPrecio(idAlmacenActual?: number): number[] {
+    const ids = [...this.idsAlmacenCotizacion];
+
+    if (Number.isFinite(idAlmacenActual) && Number(idAlmacenActual) > 0) {
+      ids.push(Number(idAlmacenActual));
+    }
+
+    return Array.from(new Set(ids.filter((idAlmacen) => Number.isFinite(idAlmacen) && idAlmacen > 0)));
   }
 }

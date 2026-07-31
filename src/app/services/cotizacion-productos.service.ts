@@ -38,6 +38,7 @@ export interface ProductoBusquedaResponse {
 export interface ProductoPrecioResponse {
   data?: {
     precio?: number;
+    monto_regla_negocio?: number;
   };
 }
 
@@ -92,16 +93,33 @@ export class CotizacionProductosService {
     );
   }
 
-  getProductoPrecio(productoId: number, idCliente: number, cantidad: number): Observable<ProductoPrecioResponse> {
+  getProductoPrecio(
+    productoId: number,
+    idCliente: number,
+    cantidad: number,
+    idAlmacenes: number[] = []
+  ): Observable<ProductoPrecioResponse> {
     if (!productoId || Number.isNaN(productoId) || !idCliente || Number.isNaN(idCliente)) {
       return of({ data: { precio: 0 } });
     }
 
     const cantidadNormalizada = Number.isFinite(cantidad) ? Math.max(1, Math.floor(cantidad)) : 1;
-    const params = new HttpParams()
+    const idsAlmacenesNormalizados = Array.from(
+      new Set(
+        idAlmacenes
+          .map((idAlmacen) => Number(idAlmacen))
+          .filter((idAlmacen) => Number.isFinite(idAlmacen) && idAlmacen > 0)
+      )
+    );
+
+    let params = new HttpParams()
       .set('productoId', String(productoId))
       .set('idCliente', String(idCliente))
       .set('cantidad', String(cantidadNormalizada));
+
+    idsAlmacenesNormalizados.forEach((idAlmacen) => {
+      params = params.append('idAlmacenes[]', String(idAlmacen));
+    });
 
     return this.http.get<ProductoPrecioResponse>(this.precioUrl, { params }).pipe(catchError(() => of({ data: { precio: 0 } })));
   }
