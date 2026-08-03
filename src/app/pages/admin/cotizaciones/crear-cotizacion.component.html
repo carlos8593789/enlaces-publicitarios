@@ -232,10 +232,10 @@
                           </div>
                           <button
                             type="button"
-                            class="btn-editar-colores"
-                            (click)="actualizarCantidadDesdeModal(linea)"
+                            class="btn-editar-colores ms-2"
+                            (click)="abrirModalAgregarTecnicas(linea)"
                           >
-                            Editar colores
+                            Agregar tecnica
                           </button>
                         </div>
                       </div>
@@ -246,13 +246,22 @@
                     </td>
                     <td class="text-end">{{ linea.precioUnitario * linea.cantidad | currency: 'MXN' }}</td>
                     <td class="text-end">
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-outline-danger"
-                        (click)="eliminarProducto(linea.id)"
-                      >
-                        Quitar
-                      </button>
+                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          (click)="actualizarCantidadDesdeModal(linea)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          (click)="eliminarProducto(linea.id)"
+                        >
+                          Quitar
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
@@ -270,6 +279,9 @@
                           <div class="small text-muted">
                             {{ tecnica.tintasSeleccionadas }} tinta(s) / {{ tecnica.posicionesSeleccionadas }} posicion(es)
                           </div>
+                          <div class="small text-muted" *ngIf="tecnica.color">
+                            Color: {{ tecnica.color }}
+                          </div>
                           <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
                             Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
                           </div>
@@ -281,7 +293,24 @@
                       <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
                     </td>
                     <td class="text-end">{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</td>
-                    <td></td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          (click)="abrirModalEditarTecnicas(linea)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          (click)="eliminarTecnica(linea, tecnica.id_tecnica)"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 </ng-container>
               </tbody>
@@ -293,11 +322,12 @@
           <div class="resumen-card">
             <div class="small text-muted">Productos totales</div>
             <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
-            <div>Subtotal: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
-            <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
-            <div>Tecnicas de impresion: <strong>{{ totalTecnicasImpresion | currency: 'MXN' }}</strong></div>
+            <div>Subtotal del producto: <strong>{{ subtotalProducto | currency: 'MXN' }}</strong></div>
+            <div>Subtotal tecnica de impresion: <strong>{{ subtotalTecnicasImpresion | currency: 'MXN' }}</strong></div>
             <div>Regla de negocio: <strong>{{ totalMontoReglaNegocio | currency: 'MXN' }}</strong></div>
-            <div class="fs-5 mt-1">Total: <strong>{{ total | currency: 'MXN' }}</strong></div>
+            <div>SUBTOTAL: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
+            <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
+            <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
 
             <button
               type="button"
@@ -347,7 +377,9 @@
   <div class="modal-tecnicas-card" (click)="$event.stopPropagation()">
     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
       <div>
-        <h4 id="modalTecnicasTitulo" class="h6 mb-1">Tecnicas de impresion del producto</h4>
+        <h4 id="modalTecnicasTitulo" class="h6 mb-1">
+          {{ modoModalTecnicas === 'editar-linea' ? 'Editar tecnicas de impresion' : (modoModalTecnicas === 'agregar-linea' ? 'Agregar tecnicas de impresion' : 'Tecnicas de impresion del producto') }}
+        </h4>
         <p class="small text-muted mb-0">Selecciona una o varias tecnicas y define cuantas tintas o posiciones requiere cada una.</p>
       </div>
       <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalTecnicasImpresion()"></button>
@@ -373,7 +405,10 @@
     <p *ngIf="tecnicasImpresionError" class="text-danger small mb-3">{{ tecnicasImpresionError }}</p>
 
     <div class="small text-muted mb-3" *ngIf="productoPendienteAgregar as productoPendiente">
-      Piezas asignadas a tecnicas: <strong>{{ obtenerTotalPiezasTecnicasSeleccionadas() }}</strong> / <strong>{{ productoPendiente.cantidad }}</strong>
+      Piezas asignadas a tecnicas:
+      <strong>{{ getPiezasTecnicasExistentes() + obtenerTotalPiezasTecnicasSeleccionadas() }}</strong>
+      /
+      <strong>{{ productoPendiente.cantidad }}</strong>
     </div>
 
     <div class="tecnicas-lista" *ngIf="!cargandoTecnicasImpresion && tecnicasImpresionCatalogo.length > 0">
@@ -440,6 +475,43 @@
             </option>
           </select>
 
+          <label class="small text-muted">Color</label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Ej. Rojo"
+            [disabled]="!tecnica.seleccionada"
+            [ngModel]="tecnica.color"
+            (ngModelChange)="actualizarColorTecnica(tecnica, $event)"
+          />
+
+          <label class="small text-muted">Detalles</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.detalles"
+            placeholder="Detalle de la tecnica"
+          ></textarea>
+
+          <label class="small text-muted">Consideraciones</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.consideraciones"
+            placeholder="Consideraciones de la tecnica"
+          ></textarea>
+
+          <label class="small text-muted">Nota</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.nota"
+            placeholder="Agrega una nota"
+          ></textarea>
+
           <div class="small text-muted tecnica-piezas-restantes">
             Máximo disponible: {{ obtenerMaximoPiezasTecnica(tecnica) }} pieza(s)
           </div>
@@ -456,7 +528,7 @@
         Cancelar
       </button>
       <button type="button" class="btn btn-primary" (click)="confirmarTecnicasSeleccionadas()" [disabled]="cargandoTecnicasImpresion || calculandoPrecioTecnicas">
-        {{ calculandoPrecioTecnicas ? 'Calculando precio...' : 'Agregar a cotizacion' }}
+        {{ calculandoPrecioTecnicas ? 'Calculando precio...' : (modoModalTecnicas === 'editar-linea' ? 'Guardar cambios' : (modoModalTecnicas === 'agregar-linea' ? 'Agregar tecnicas' : 'Agregar a cotizacion')) }}
       </button>
     </div>
   </div>
@@ -482,6 +554,16 @@
         <div class="small text-muted">{{ producto.label }}</div>
         <div class="small text-muted">Stock local: {{ stockLocalProducto }}</div>
       </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small">Informacion del producto</label>
+      <textarea
+        class="form-control form-control-sm"
+        rows="3"
+        [(ngModel)]="descripcionProductoModal"
+        placeholder="Descripcion del producto"
+      ></textarea>
     </div>
 
     <div *ngIf="cargandoStockProducto" class="small text-muted mb-3">

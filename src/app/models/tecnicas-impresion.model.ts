@@ -5,6 +5,8 @@ export interface TecnicaImpresionApiItem {
   nombre: string;
   cantidad_posiciones: number;
   cantidad_tintas: number;
+  consideraciones: string;
+  descripcion: string;
 }
 
 export interface TecnicaImpresionSeleccion extends TecnicaImpresionApiItem {
@@ -12,6 +14,9 @@ export interface TecnicaImpresionSeleccion extends TecnicaImpresionApiItem {
   piezasSeleccionadas: number;
   tintasSeleccionadas: number;
   posicionesSeleccionadas: number;
+  color: string;
+  detalles: string;
+  nota: string;
   precioUnitario?: number;
   cargoExtra?: number;
 }

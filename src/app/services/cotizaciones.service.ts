@@ -10,6 +10,18 @@ export interface CrearCotizacionProductoPayload {
   descripcion: string;
   porcentaje_descuento: number;
   cantidad: number;
+  tecnicas_impresion?: CrearCotizacionTecnicaPayload[];
+}
+
+export interface CrearCotizacionTecnicaPayload {
+  idTecnica: number;
+  color: string;
+  cantidad: number;
+  tintas: number;
+  posiciones: number;
+  detalles: string;
+  consideraciones: string;
+  nota: string;
 }
 
 export interface CrearCotizacionPayload {

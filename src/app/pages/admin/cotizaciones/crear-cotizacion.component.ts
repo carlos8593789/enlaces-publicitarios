@@ -65,6 +65,7 @@ export class CrearCotizacionComponent implements OnInit {
   productosEncontrados: CotizacionProducto[] = [];
   modalCantidadAbierto = false;
   productoSeleccionado: CotizacionProducto | null = null;
+  descripcionProductoModal = '';
   lineaEditando: CotizacionLinea | null = null;
   cargandoStockProducto = false;
   calculandoPrecioProducto = false;
@@ -77,11 +78,14 @@ export class CrearCotizacionComponent implements OnInit {
   calculandoPrecioTecnicas = false;
   tecnicasImpresionError = '';
   tecnicasImpresionCatalogo: TecnicaImpresionSeleccion[] = [];
+  lineaTecnicasEditando: CotizacionLinea | null = null;
+  modoModalTecnicas: 'crear' | 'agregar-linea' | 'editar-linea' = 'crear';
 
   productoPendienteAgregar:
     | {
         producto: CotizacionProducto;
         cantidad: number;
+        descripcion: string;
         coloresSeleccionados: CotizacionColorSeleccion[];
         precioUnitario: number;
         montoReglaNegocio: number;
@@ -257,6 +261,7 @@ export class CrearCotizacionComponent implements OnInit {
 
     this.lineaEditando = null;
     this.productoSeleccionado = producto;
+    this.descripcionProductoModal = (producto.descripcioncorta || producto.label || '').trim();
     this.modalCantidadAbierto = true;
     this.stockProductoError = '';
     this.cargandoStockProducto = true;
@@ -280,6 +285,7 @@ export class CrearCotizacionComponent implements OnInit {
   abrirModalEditarCantidad(linea: CotizacionLinea): void {
     this.lineaEditando = linea;
     this.productoSeleccionado = linea;
+    this.descripcionProductoModal = (linea.descripcion || linea.descripcioncorta || linea.label || '').trim();
     this.modalCantidadAbierto = true;
     this.stockProductoError = '';
     this.cargandoStockProducto = true;
@@ -310,6 +316,7 @@ export class CrearCotizacionComponent implements OnInit {
   cerrarModalCantidad(): void {
     this.modalCantidadAbierto = false;
     this.productoSeleccionado = null;
+    this.descripcionProductoModal = '';
     this.lineaEditando = null;
     this.cargandoStockProducto = false;
     this.calculandoPrecioProducto = false;
@@ -341,6 +348,10 @@ export class CrearCotizacionComponent implements OnInit {
       return;
     }
 
+    const descripcionCapturada =
+      this.descripcionProductoModal.trim() ||
+      (this.productoSeleccionado.descripcioncorta || this.productoSeleccionado.label || '').trim();
+
     this.calculandoPrecioProducto = true;
     this.stockProductoError = '';
 
@@ -363,7 +374,14 @@ export class CrearCotizacionComponent implements OnInit {
         const lineaEditando = this.lineaEditando;
 
         if (lineaEditando) {
-          this.actualizarLineaDesdeModal(lineaEditando, cantidad, coloresSeleccionados, precioUnitario, montoReglaNegocio);
+          this.actualizarLineaDesdeModal(
+            lineaEditando,
+            cantidad,
+            descripcionCapturada,
+            coloresSeleccionados,
+            precioUnitario,
+            montoReglaNegocio
+          );
           this.busquedaInfo = `Se actualizo ${cantidad} pza(s) de: ${producto.value}`;
           this.calculandoPrecioProducto = false;
           this.cerrarModalCantidad();
@@ -374,6 +392,7 @@ export class CrearCotizacionComponent implements OnInit {
         this.productoPendienteAgregar = {
           producto,
           cantidad,
+          descripcion: descripcionCapturada,
           coloresSeleccionados,
           precioUnitario,
           montoReglaNegocio
@@ -424,28 +443,43 @@ export class CrearCotizacionComponent implements OnInit {
     }
 
     this.confirmarTecnicasImpresionAbierto = false;
-    this.modalTecnicasImpresionAbierto = true;
-    this.cargandoTecnicasImpresion = true;
-    this.tecnicasImpresionError = '';
-    this.tecnicasImpresionCatalogo = [];
+    this.modoModalTecnicas = 'crear';
+    this.cargarCatalogoTecnicas(pendiente.producto.id);
+  }
 
-    this.tecnicasImpresionService.getTecnicasImpresion(pendiente.producto.id).subscribe({
-      next: (response) => {
-        const tecnicas = this.normalizarTecnicasImpresion(response.data);
-        this.tecnicasImpresionCatalogo = tecnicas.map((item) => ({
-          ...item,
-          seleccionada: false,
-          piezasSeleccionadas: 0,
-          tintasSeleccionadas: item.cantidad_tintas > 0 ? 1 : 0,
-          posicionesSeleccionadas: item.cantidad_posiciones > 0 ? 1 : 0
-        }));
-        this.cargandoTecnicasImpresion = false;
-      },
-      error: () => {
-        this.tecnicasImpresionError = 'No se pudieron cargar las tecnicas de impresion del producto.';
-        this.cargandoTecnicasImpresion = false;
-      }
-    });
+  abrirModalAgregarTecnicas(linea: CotizacionLinea): void {
+    this.lineaTecnicasEditando = linea;
+    this.modoModalTecnicas = 'agregar-linea';
+    this.productoPendienteAgregar = {
+      producto: linea,
+      cantidad: linea.cantidad,
+      descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
+      coloresSeleccionados: linea.coloresSeleccionados ?? [],
+      precioUnitario: linea.precioUnitario,
+      montoReglaNegocio: linea.montoReglaNegocio
+    };
+
+    this.cargarCatalogoTecnicas(linea.id, linea.tecnicasImpresion ?? [], true);
+  }
+
+  abrirModalEditarTecnicas(linea: CotizacionLinea): void {
+    this.lineaTecnicasEditando = linea;
+    this.modoModalTecnicas = 'editar-linea';
+    this.productoPendienteAgregar = {
+      producto: linea,
+      cantidad: linea.cantidad,
+      descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
+      coloresSeleccionados: linea.coloresSeleccionados ?? [],
+      precioUnitario: linea.precioUnitario,
+      montoReglaNegocio: linea.montoReglaNegocio
+    };
+
+    this.cargarCatalogoTecnicas(linea.id, linea.tecnicasImpresion ?? []);
+  }
+
+  eliminarTecnica(linea: CotizacionLinea, idTecnica: number): void {
+    linea.tecnicasImpresion = (linea.tecnicasImpresion ?? []).filter((tecnica) => tecnica.id_tecnica !== idTecnica);
+    this.busquedaInfo = `Se elimino una tecnica de impresion de: ${linea.value}`;
   }
 
   cerrarModalTecnicasImpresion(): void {
@@ -455,6 +489,8 @@ export class CrearCotizacionComponent implements OnInit {
     this.tecnicasImpresionError = '';
     this.tecnicasImpresionCatalogo = [];
     this.productoPendienteAgregar = null;
+    this.lineaTecnicasEditando = null;
+    this.modoModalTecnicas = 'crear';
   }
 
   alternarTecnicaImpresion(item: TecnicaImpresionSeleccion, seleccionada: boolean): void {
@@ -470,6 +506,8 @@ export class CrearCotizacionComponent implements OnInit {
     item.piezasSeleccionadas = 0;
     item.tintasSeleccionadas = 0;
     item.posicionesSeleccionadas = 0;
+    item.color = '';
+    item.nota = '';
   }
 
   actualizarPiezasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
@@ -493,6 +531,10 @@ export class CrearCotizacionComponent implements OnInit {
     item.posicionesSeleccionadas = Math.min(cantidadValida, maximo);
   }
 
+  actualizarColorTecnica(item: TecnicaImpresionSeleccion, color: string): void {
+    item.color = typeof color === 'string' ? color : '';
+  }
+
   confirmarTecnicasSeleccionadas(): void {
     const pendiente = this.productoPendienteAgregar;
     if (!pendiente) {
@@ -501,6 +543,20 @@ export class CrearCotizacionComponent implements OnInit {
     }
 
     const tecnicasSeleccionadas = this.tecnicasImpresionCatalogo.filter((item) => item.seleccionada);
+    const lineaTecnicasEditando = this.lineaTecnicasEditando;
+
+    if (tecnicasSeleccionadas.length === 0) {
+      if (lineaTecnicasEditando && this.modoModalTecnicas === 'editar-linea') {
+        lineaTecnicasEditando.tecnicasImpresion = [];
+        this.busquedaInfo = `Se actualizaron las tecnicas de impresion de: ${lineaTecnicasEditando.value}`;
+        this.cerrarModalTecnicasImpresion();
+        return;
+      }
+
+      this.cerrarModalTecnicasImpresion();
+      return;
+    }
+
     const piezasTecnicas = this.obtenerTotalPiezasTecnicasSeleccionadas(tecnicasSeleccionadas);
 
     if (piezasTecnicas <= 0) {
@@ -519,6 +575,7 @@ export class CrearCotizacionComponent implements OnInit {
   agregarProducto(
     producto: CotizacionProducto,
     cantidad = 1,
+    descripcionProducto = '',
     coloresSeleccionados: CotizacionColorSeleccion[] = [],
     precioUnitario = 0,
     montoReglaNegocio = 0,
@@ -528,6 +585,7 @@ export class CrearCotizacionComponent implements OnInit {
     const existente = this.lineasCotizacion.find((linea) => linea.id === producto.id);
     if (existente) {
       existente.cantidad += cantidadValida;
+      existente.descripcion = (descripcionProducto || existente.descripcion || existente.descripcioncorta || existente.label || '').trim();
       existente.precioUnitario = precioUnitario;
       existente.montoReglaNegocio = montoReglaNegocio;
       existente.id_almacen = producto.id_almacen;
@@ -547,6 +605,7 @@ export class CrearCotizacionComponent implements OnInit {
       ...this.lineasCotizacion,
       {
         ...producto,
+        descripcion: (descripcionProducto || producto.descripcioncorta || producto.label || '').trim(),
         precioUnitario,
         montoReglaNegocio,
         cantidad: cantidadValida,
@@ -615,9 +674,21 @@ export class CrearCotizacionComponent implements OnInit {
       productos: this.lineasCotizacion.map((linea) => ({
         id_producto: linea.id,
         producto_color_cantidad: this.formatearProductoColorCantidad(linea.coloresSeleccionados),
-        descripcion: linea.label,
+        descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
         porcentaje_descuento: 0,
-        cantidad: linea.cantidad
+        cantidad: linea.cantidad,
+        tecnicas_impresion: (linea.tecnicasImpresion ?? [])
+          .filter((tecnica) => Number(tecnica.id_tecnica) > 0 && Number(tecnica.piezasSeleccionadas) > 0)
+          .map((tecnica) => ({
+            idTecnica: Number(tecnica.id_tecnica),
+            color: (tecnica.color || '').trim(),
+            cantidad: Math.max(0, Math.floor(Number(tecnica.piezasSeleccionadas) || 0)),
+            tintas: Math.max(0, Math.floor(Number(tecnica.tintasSeleccionadas) || 0)),
+            posiciones: Math.max(0, Math.floor(Number(tecnica.posicionesSeleccionadas) || 0)),
+            detalles: (tecnica.detalles || '').trim(),
+            consideraciones: (tecnica.consideraciones || '').trim(),
+            nota: (tecnica.nota || '').trim()
+          }))
       }))
     };
 
@@ -637,12 +708,20 @@ export class CrearCotizacionComponent implements OnInit {
     });
   }
 
-  get subtotal(): number {
+  get subtotalProducto(): number {
     return this.lineasCotizacion.reduce((acc, linea) => acc + linea.precioUnitario * linea.cantidad, 0);
   }
 
-  get totalTecnicasImpresion(): number {
+  get subtotalTecnicasImpresion(): number {
     return this.lineasCotizacion.reduce((acc, linea) => acc + this.getTotalTecnicasPorLinea(linea), 0);
+  }
+
+  get totalTecnicasImpresion(): number {
+    return this.subtotalTecnicasImpresion;
+  }
+
+  get subtotal(): number {
+    return this.subtotalProducto + this.subtotalTecnicasImpresion + this.totalMontoReglaNegocio;
   }
 
   get iva(): number {
@@ -654,7 +733,7 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   get total(): number {
-    return this.subtotal + this.iva + this.totalMontoReglaNegocio + this.totalTecnicasImpresion;
+    return this.subtotal + this.iva;
   }
 
   get cantidadTotalProductos(): number {
@@ -763,11 +842,23 @@ export class CrearCotizacionComponent implements OnInit {
 
   obtenerMaximoPiezasTecnica(item: TecnicaImpresionSeleccion): number {
     const productoCantidad = Math.max(0, Math.floor(Number(this.productoPendienteAgregar?.cantidad ?? 0)));
+    const piezasBloqueadas = this.getPiezasTecnicasExistentes();
     const piezasOtros = this.obtenerTotalPiezasTecnicasSeleccionadas(
       this.tecnicasImpresionCatalogo.filter((tecnica) => tecnica.seleccionada && tecnica.id_tecnica !== item.id_tecnica)
     );
 
-    return Math.max(0, productoCantidad - piezasOtros);
+    return Math.max(0, productoCantidad - piezasBloqueadas - piezasOtros);
+  }
+
+  getPiezasTecnicasExistentes(): number {
+    if (this.modoModalTecnicas !== 'agregar-linea' || !this.lineaTecnicasEditando) {
+      return 0;
+    }
+
+    return (this.lineaTecnicasEditando.tecnicasImpresion ?? []).reduce(
+      (acc, tecnica) => acc + Math.max(0, Number(tecnica.piezasSeleccionadas ?? 0)),
+      0
+    );
   }
 
   trackByTecnicaImpresion(_index: number, item: TecnicaImpresionSeleccion): number {
@@ -779,16 +870,37 @@ export class CrearCotizacionComponent implements OnInit {
 
     const parsed = items
       .filter((item): item is NonNullable<typeof item> => !!item && typeof item === 'object' && !Array.isArray(item))
-      .map((item) => ({
-        id: Number(item.id ?? 0),
-        value: typeof item.value === 'string' ? item.value.trim() : '',
-        label: typeof item.label === 'string' ? item.label.trim() : '',
-        imagen: typeof item.imagen === 'string' ? item.imagen : '',
-        id_almacen: Number(item.id_almacen ?? 0)
-      }))
-      .filter((item) => Number.isFinite(item.id) && item.value && item.label)
+      .map((item) => {
+        const clave = typeof item.clave === 'string' ? item.clave.trim() : '';
+        const descripcioncorta = typeof item.descripcioncorta === 'string' ? item.descripcioncorta.trim() : '';
+        const value =
+          typeof item.value === 'string' && item.value.trim()
+            ? item.value.trim()
+            : descripcioncorta || clave;
+        const label =
+          typeof item.label === 'string' && item.label.trim()
+            ? item.label.trim()
+            : [value, clave].filter(Boolean).join(' ');
+
+        return {
+          id: Number(item.id ?? 0),
+          clave,
+          bbb: Number.isFinite(Number(item.bbb ?? 0)) ? Number(item.bbb ?? 0) : 0,
+          aplica_regla: Number.isFinite(Number(item.aplica_regla ?? 0)) ? Number(item.aplica_regla ?? 0) : 0,
+          descripcioncorta,
+          value,
+          label,
+          imagen: typeof item.imagen === 'string' ? item.imagen : '',
+          id_almacen: Number(item.id_almacen ?? 0)
+        };
+      })
+      .filter((item) => Number.isFinite(item.id) && item.value)
       .map((item) => ({
         id: item.id,
+        clave: item.clave,
+        bbb: item.bbb,
+        aplica_regla: item.aplica_regla,
+        descripcioncorta: item.descripcioncorta,
         value: item.value,
         label: item.label,
         imagen: this.normalizarImagenProducto(item.imagen),
@@ -867,6 +979,8 @@ export class CrearCotizacionComponent implements OnInit {
         imagen: this.normalizarImagenTecnica(typeof item.imagen === 'string' ? item.imagen : ''),
         id_tecnica: Number(item.id_tecnica ?? 0),
         nombre: typeof item.nombre === 'string' ? item.nombre.trim() : '',
+        consideraciones: typeof item.consideraciones === 'string' ? item.consideraciones.trim() : '',
+        descripcion: typeof item.descripcion === 'string' ? item.descripcion.trim() : '',
         cantidad_posiciones: Math.max(
           0,
           Number.isFinite(Number(item.cantidad_posiciones ?? 0)) ? Number(item.cantidad_posiciones ?? 0) : 0
@@ -953,6 +1067,10 @@ export class CrearCotizacionComponent implements OnInit {
       existente.piezasSeleccionadas = Math.max(existente.piezasSeleccionadas, item.piezasSeleccionadas);
       existente.tintasSeleccionadas = Math.max(existente.tintasSeleccionadas, item.tintasSeleccionadas);
       existente.posicionesSeleccionadas = Math.max(existente.posicionesSeleccionadas, item.posicionesSeleccionadas);
+      existente.color = (item.color || '').trim() || (existente.color || '').trim();
+      existente.detalles = (item.detalles || '').trim() || (existente.detalles || '').trim();
+      existente.consideraciones = (item.consideraciones || '').trim() || (existente.consideraciones || '').trim();
+      existente.nota = (item.nota || '').trim() || (existente.nota || '').trim();
       existente.precioUnitario = Math.max(Number(existente.precioUnitario ?? 0), Number(item.precioUnitario ?? 0));
       existente.cargoExtra = Math.max(Number(existente.cargoExtra ?? 0), Number(item.cargoExtra ?? 0));
     });
@@ -964,6 +1082,7 @@ export class CrearCotizacionComponent implements OnInit {
     pendiente: {
       producto: CotizacionProducto;
       cantidad: number;
+      descripcion: string;
       coloresSeleccionados: CotizacionColorSeleccion[];
       precioUnitario: number;
       montoReglaNegocio: number;
@@ -1014,6 +1133,7 @@ export class CrearCotizacionComponent implements OnInit {
     pendiente: {
       producto: CotizacionProducto;
       cantidad: number;
+      descripcion: string;
       coloresSeleccionados: CotizacionColorSeleccion[];
       precioUnitario: number;
       montoReglaNegocio: number;
@@ -1022,18 +1142,49 @@ export class CrearCotizacionComponent implements OnInit {
   ): void {
     this.modalTecnicasImpresionAbierto = false;
     this.calculandoPrecioTecnicas = false;
+    const lineaTecnicasEditando = this.lineaTecnicasEditando;
     const tecnicasNormalizadas = tecnicasSeleccionadas.map((item) => ({
       ...item,
       piezasSeleccionadas: Math.max(0, Math.floor(item.piezasSeleccionadas)),
       tintasSeleccionadas: Math.max(0, Math.floor(item.tintasSeleccionadas)),
       posicionesSeleccionadas: Math.max(0, Math.floor(item.posicionesSeleccionadas)),
+      color: (item.color || '').trim(),
+      detalles: (item.detalles || '').trim(),
+      consideraciones: (item.consideraciones || '').trim(),
+      nota: (item.nota || '').trim(),
       precioUnitario: Math.max(0, Number(item.precioUnitario ?? 0)),
       cargoExtra: Math.max(0, Number(item.cargoExtra ?? 0))
     }));
 
+    if (lineaTecnicasEditando && this.modoModalTecnicas === 'editar-linea') {
+      lineaTecnicasEditando.tecnicasImpresion = tecnicasNormalizadas;
+      this.busquedaInfo = `Se actualizaron las tecnicas de impresion de: ${lineaTecnicasEditando.value}`;
+      this.productoPendienteAgregar = null;
+      this.tecnicasImpresionCatalogo = [];
+      this.tecnicasImpresionError = '';
+      this.lineaTecnicasEditando = null;
+      this.modoModalTecnicas = 'crear';
+      return;
+    }
+
+    if (lineaTecnicasEditando && this.modoModalTecnicas === 'agregar-linea') {
+      lineaTecnicasEditando.tecnicasImpresion = [
+        ...(lineaTecnicasEditando.tecnicasImpresion ?? []),
+        ...tecnicasNormalizadas
+      ];
+      this.busquedaInfo = `Se agregaron tecnicas de impresion a: ${lineaTecnicasEditando.value}`;
+      this.productoPendienteAgregar = null;
+      this.tecnicasImpresionCatalogo = [];
+      this.tecnicasImpresionError = '';
+      this.lineaTecnicasEditando = null;
+      this.modoModalTecnicas = 'crear';
+      return;
+    }
+
     this.agregarProducto(
       pendiente.producto,
       pendiente.cantidad,
+      pendiente.descripcion,
       pendiente.coloresSeleccionados,
       pendiente.precioUnitario,
       pendiente.montoReglaNegocio,
@@ -1047,6 +1198,52 @@ export class CrearCotizacionComponent implements OnInit {
     this.productoPendienteAgregar = null;
     this.tecnicasImpresionCatalogo = [];
     this.tecnicasImpresionError = '';
+    this.lineaTecnicasEditando = null;
+    this.modoModalTecnicas = 'crear';
+  }
+
+  private cargarCatalogoTecnicas(
+    idProducto: number,
+    seleccionadasPrevias: TecnicaImpresionSeleccion[] = [],
+    excluirSeleccionadasPrevias = false
+  ): void {
+    this.modalTecnicasImpresionAbierto = true;
+    this.cargandoTecnicasImpresion = true;
+    this.calculandoPrecioTecnicas = false;
+    this.tecnicasImpresionError = '';
+    this.tecnicasImpresionCatalogo = [];
+
+    const tecnicasPrevias = new Map(seleccionadasPrevias.map((item) => [item.id_tecnica, item] as const));
+
+    this.tecnicasImpresionService.getTecnicasImpresion(idProducto).subscribe({
+      next: (response) => {
+        const tecnicas = this.normalizarTecnicasImpresion(response.data).filter(
+          (item) => !excluirSeleccionadasPrevias || !tecnicasPrevias.has(item.id_tecnica)
+        );
+        this.tecnicasImpresionCatalogo = tecnicas.map((item) => {
+          const previa = tecnicasPrevias.get(item.id_tecnica);
+
+          return {
+            ...item,
+            seleccionada: !!previa,
+            piezasSeleccionadas: previa?.piezasSeleccionadas ?? 0,
+            tintasSeleccionadas: previa?.tintasSeleccionadas ?? (item.cantidad_tintas > 0 ? 1 : 0),
+            posicionesSeleccionadas: previa?.posicionesSeleccionadas ?? (item.cantidad_posiciones > 0 ? 1 : 0),
+            color: previa?.color ?? '',
+            detalles: previa?.detalles ?? item.descripcion ?? '',
+            consideraciones: previa?.consideraciones ?? item.consideraciones ?? '',
+            nota: previa?.nota ?? '',
+            precioUnitario: previa?.precioUnitario ?? 0,
+            cargoExtra: previa?.cargoExtra ?? 0
+          };
+        });
+        this.cargandoTecnicasImpresion = false;
+      },
+      error: () => {
+        this.tecnicasImpresionError = 'No se pudieron cargar las tecnicas de impresion del producto.';
+        this.cargandoTecnicasImpresion = false;
+      }
+    });
   }
 
   private normalizarPrecioTecnicaImpresion(response: TecnicaImpresionPrecioResponse): {
@@ -1075,6 +1272,9 @@ export class CrearCotizacionComponent implements OnInit {
       if (item.posicionesSeleccionadas > 0) {
         partes.push(`${item.posicionesSeleccionadas} posicion(es)`);
       }
+      if ((item.color || '').trim()) {
+        partes.push(`color: ${item.color.trim()}`);
+      }
       return partes.join(' / ');
     });
 
@@ -1084,11 +1284,13 @@ export class CrearCotizacionComponent implements OnInit {
   private actualizarLineaDesdeModal(
     linea: CotizacionLinea,
     cantidad: number,
+    descripcion: string,
     coloresSeleccionados: CotizacionColorSeleccion[],
     precioUnitario: number,
     montoReglaNegocio: number
   ): void {
     linea.cantidad = cantidad;
+    linea.descripcion = (descripcion || linea.descripcioncorta || linea.label || '').trim();
     linea.coloresSeleccionados = coloresSeleccionados;
     linea.precioUnitario = precioUnitario;
     linea.montoReglaNegocio = montoReglaNegocio;

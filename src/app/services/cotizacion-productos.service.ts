@@ -28,6 +28,10 @@ export interface ProductoStockDetalle {
 export interface ProductoBusquedaResponse {
   data?: Array<{
     id: number;
+    clave?: string;
+    bbb?: number;
+    aplica_regla?: number;
+    descripcioncorta?: string;
     value: string;
     label: string;
     imagen?: string;
