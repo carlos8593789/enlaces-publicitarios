@@ -47,7 +47,11 @@
         <div class="row g-2">
           <div class="col-12 col-md-3">
             <span class="text-muted d-block small">Nombre</span>
-            <strong>{{ cliente.nombre }}</strong>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <strong>{{ cliente.nombre }}</strong>
+              <span *ngIf="cliente.distribuidor === 1" class="badge text-bg-primary">Distribuidor</span>
+              <span *ngIf="cliente.distribuidor === 2" class="badge text-bg-warning">Intermediario</span>
+            </div>
           </div>
           <div class="col-12 col-md-3">
             <span class="text-muted d-block small">Correo</span>
@@ -71,11 +75,13 @@
           <div class="col-12 col-lg-6">
             <label class="form-label small">Riesgos</label>
             <textarea
+              required
               class="form-control"
               rows="2"
               [(ngModel)]="riesgos"
               placeholder="Ej. Sujeto a disponibilidad de inventario"
             ></textarea>
+            <div *ngIf="!riesgos.trim()" class="text-danger small mt-1">Los riesgos son obligatorios.</div>
           </div>
           <div class="col-12 col-lg-6">
             <label class="form-label small">Condiciones de venta</label>
@@ -92,11 +98,13 @@
             <div *ngIf="cargandoCondicionesVenta" class="text-muted small mb-2">Cargando condiciones de venta...</div>
             <p *ngIf="condicionesVentaError" class="text-danger small mb-2">{{ condicionesVentaError }}</p>
             <textarea
+              required
               class="form-control"
               rows="3"
               [(ngModel)]="condicionesVenta"
               placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
             ></textarea>
+            <div *ngIf="!condicionesVenta.trim()" class="text-danger small mt-1">Las condiciones de venta son obligatorias.</div>
           </div>
 
           <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
@@ -152,6 +160,9 @@
             <div>
               <div class="producto-label">{{ producto.value }}</div>
               <div class="small text-muted">{{ producto.label }}</div>
+              <div class="small text-primary fw-semibold" *ngIf="producto.bbb === 1">
+                Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+              </div>
             </div>
           </div>
 
@@ -217,6 +228,9 @@
                         <div>
                           <div class="fw-semibold">{{ linea.value }}</div>
                           <div class="small text-muted">{{ linea.label }}</div>
+                          <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
+                            Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+                          </div>
                           <div
                             class="small text-secondary"
                             *ngIf="linea.coloresSeleccionados?.length"
@@ -228,7 +242,7 @@
                             {{ getResumenColoresSeleccionados(linea.coloresSeleccionados) }}
                           </div>
                           <div class="small regla-negocio" *ngIf="linea.montoReglaNegocio > 0">
-                            Producto con regla de negocio: {{ linea.montoReglaNegocio | currency: 'MXN' }}
+                            Producto con cuota para vender desde 1 pza: {{ linea.montoReglaNegocio | currency: 'MXN' }}
                           </div>
                           <button
                             type="button"
@@ -323,8 +337,8 @@
             <div class="small text-muted">Productos totales</div>
             <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
             <div>Subtotal del producto: <strong>{{ subtotalProducto | currency: 'MXN' }}</strong></div>
-            <div>Subtotal tecnica de impresion: <strong>{{ subtotalTecnicasImpresion | currency: 'MXN' }}</strong></div>
-            <div>Regla de negocio: <strong>{{ totalMontoReglaNegocio | currency: 'MXN' }}</strong></div>
+            <div>Subtotal técnica de impresión: <strong>{{ subtotalTecnicasImpresion | currency: 'MXN' }}</strong></div>
+            <div>Cuota para vender desde 1 pza del producto: <strong>{{ totalMontoReglaNegocio | currency: 'MXN' }}</strong></div>
             <div>SUBTOTAL: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
             <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
             <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
@@ -458,7 +472,7 @@
             [(ngModel)]="tecnica.tintasSeleccionadas"
             (ngModelChange)="actualizarTintasTecnica(tecnica, $event)"
           >
-            <option *ngFor="let tinta of obtenerOpcionesCantidad(tecnica.cantidad_tintas, 0)" [ngValue]="tinta">
+            <option *ngFor="let tinta of obtenerOpcionesCantidad(tecnica.cantidad_tintas, 1)" [ngValue]="tinta">
               {{ tinta }}
             </option>
           </select>

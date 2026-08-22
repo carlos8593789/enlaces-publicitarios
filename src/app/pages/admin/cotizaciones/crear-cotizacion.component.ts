@@ -201,6 +201,7 @@ export class CrearCotizacionComponent implements OnInit {
       nombre: cliente.value,
       email: cliente.email,
       empresa: '',
+      distribuidor: cliente.distribuidor,
       telefono: cliente.telefono,
       celular: '',
       telefono_contacto: cliente.telefono
@@ -661,6 +662,16 @@ export class CrearCotizacionComponent implements OnInit {
 
     if (this.lineasCotizacion.length === 0) {
       this.crearCotizacionError = 'Agrega al menos un producto antes de crear la cotizacion.';
+      return;
+    }
+
+    if (!this.riesgos.trim()) {
+      this.crearCotizacionError = 'Completa el campo de riesgos antes de crear la cotizacion.';
+      return;
+    }
+
+    if (!this.condicionesVenta.trim()) {
+      this.crearCotizacionError = 'Completa el campo de condiciones de venta antes de crear la cotizacion.';
       return;
     }
 
