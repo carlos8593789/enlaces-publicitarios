@@ -19,6 +19,9 @@ export interface CotizacionLinea extends CotizacionProducto {
   cantidad: number;
   descripcion?: string;
   precioUnitario: number;
+  precioUnitarioBase?: number;
+  porcentajeDescuento?: number;
+  notaDescuento?: string;
   montoReglaNegocio: number;
   coloresSeleccionados?: CotizacionColorSeleccion[];
   tecnicasImpresion?: import('./tecnicas-impresion.model').TecnicaImpresionSeleccion[];

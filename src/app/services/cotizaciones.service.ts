@@ -9,6 +9,7 @@ export interface CrearCotizacionProductoPayload {
   producto_color_cantidad: string;
   descripcion: string;
   porcentaje_descuento: number;
+  nota_descuento?: string;
   cantidad: number;
   tecnicas_impresion?: CrearCotizacionTecnicaPayload[];
 }
@@ -22,6 +23,8 @@ export interface CrearCotizacionTecnicaPayload {
   detalles: string;
   consideraciones: string;
   nota: string;
+  porcentaje_descuento?: number;
+  nota_descuento?: string;
 }
 
 export interface CrearCotizacionPayload {

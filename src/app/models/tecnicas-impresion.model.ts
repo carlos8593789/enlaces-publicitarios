@@ -18,5 +18,8 @@ export interface TecnicaImpresionSeleccion extends TecnicaImpresionApiItem {
   detalles: string;
   nota: string;
   precioUnitario?: number;
+  precioUnitarioBase?: number;
+  porcentajeDescuento?: number;
+  notaDescuento?: string;
   cargoExtra?: number;
 }

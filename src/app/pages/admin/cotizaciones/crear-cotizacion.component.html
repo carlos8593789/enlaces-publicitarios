@@ -187,14 +187,24 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
         <h3 class="h6 mb-0">Productos agregados</h3>
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-danger"
-          (click)="limpiarCotizacion()"
-          [disabled]="lineasCotizacion.length === 0"
-        >
-          Vaciar
-        </button>
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            (click)="abrirModalDescuento()"
+            [disabled]="lineasCotizacion.length === 0"
+          >
+            Aplicar descuento
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger"
+            (click)="limpiarCotizacion()"
+            [disabled]="lineasCotizacion.length === 0"
+          >
+            Vaciar
+          </button>
+        </div>
       </div>
 
       <div class="row g-3 align-items-start">
@@ -231,6 +241,9 @@
                           <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
                             Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
                           </div>
+                          <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
+                            Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
+                          </div>
                           <div
                             class="small text-secondary"
                             *ngIf="linea.coloresSeleccionados?.length"
@@ -251,14 +264,27 @@
                           >
                             Agregar tecnica
                           </button>
+                          <button
+                            type="button"
+                            class="btn-editar-colores ms-2 text-danger"
+                            *ngIf="(linea.porcentajeDescuento ?? 0) > 0"
+                            (click)="quitarDescuentoProducto(linea)"
+                          >
+                            Quitar descuento
+                          </button>
                         </div>
                       </div>
                     </td>
-                    <td class="text-end">{{ linea.precioUnitario | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div *ngIf="(linea.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+                        {{ (linea.precioUnitarioBase ?? linea.precioUnitario) | currency: 'MXN' }}
+                      </div>
+                      <div>{{ linea.precioUnitario | currency: 'MXN' }}</div>
+                    </td>
                     <td>
                       <div class="cantidad-display">{{ linea.cantidad }}</div>
                     </td>
-                    <td class="text-end">{{ linea.precioUnitario * linea.cantidad | currency: 'MXN' }}</td>
+                    <td class="text-end">{{ getImporteLinea(linea) | currency: 'MXN' }}</td>
                     <td class="text-end">
                       <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
                         <button
@@ -299,10 +325,26 @@
                           <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
                             Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
                           </div>
+                          <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
+                            Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
+                          </div>
+                          <button
+                            type="button"
+                            class="btn-editar-colores ms-2 text-danger"
+                            *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0"
+                            (click)="quitarDescuentoTecnica(tecnica)"
+                          >
+                            Quitar descuento
+                          </button>
                         </div>
                       </div>
                     </td>
-                    <td class="text-end">{{ (tecnica.precioUnitario ?? 0) | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+                        {{ (tecnica.precioUnitarioBase ?? tecnica.precioUnitario ?? 0) | currency: 'MXN' }}
+                      </div>
+                      <div>{{ (tecnica.precioUnitario ?? 0) | currency: 'MXN' }}</div>
+                    </td>
                     <td>
                       <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
                     </td>
@@ -360,6 +402,57 @@
     </div>
   </div>
 </section>
+
+<div class="modal-backdrop-cot" *ngIf="modalDescuentoAbierto" (click)="cerrarModalDescuento()"></div>
+
+<div class="modal-cantidad" *ngIf="modalDescuentoAbierto" role="dialog" aria-modal="true" aria-labelledby="modalDescuentoTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalDescuentoTitulo" class="h6 mb-3">Aplicar descuento</h4>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoAlcance">Aplicar a</label>
+      <select id="descuentoAlcance" class="form-select form-select-sm" [(ngModel)]="descuentoAlcance">
+        <option value="productos">Solo productos</option>
+        <option value="tecnicas">Solo tecnicas de impresion</option>
+        <option value="todo">Productos y tecnicas de impresion</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoPorcentaje">Porcentaje de descuento</label>
+      <div class="input-group input-group-sm">
+        <input
+          id="descuentoPorcentaje"
+          type="number"
+          class="form-control"
+          min="1"
+          max="100"
+          step="1"
+          [(ngModel)]="descuentoPorcentaje"
+        />
+        <span class="input-group-text">%</span>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoNota">Motivo del descuento</label>
+      <textarea
+        id="descuentoNota"
+        class="form-control form-control-sm"
+        rows="3"
+        [(ngModel)]="descuentoNota"
+        placeholder="Ej. Precio especial autorizado por ventas"
+      ></textarea>
+    </div>
+
+    <p *ngIf="descuentoError" class="text-danger small mb-3">{{ descuentoError }}</p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalDescuento()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="aplicarDescuento()">Aplicar descuento</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop-cot" *ngIf="confirmarTecnicasImpresionAbierto && !modalTecnicasImpresionAbierto" (click)="confirmarAgregarSinTecnicas()"></div>
 

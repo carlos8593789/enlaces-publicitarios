@@ -105,6 +105,11 @@ export class CrearCotizacionComponent implements OnInit {
   creandoCotizacion = false;
   crearCotizacionError = '';
   crearCotizacionExito = '';
+  modalDescuentoAbierto = false;
+  descuentoAlcance: 'productos' | 'tecnicas' | 'todo' = 'todo';
+  descuentoPorcentaje = 0;
+  descuentoNota = '';
+  descuentoError = '';
 
   ngOnInit(): void {
     this.cargarCondicionesVenta();
@@ -478,6 +483,63 @@ export class CrearCotizacionComponent implements OnInit {
     this.cargarCatalogoTecnicas(linea.id, linea.tecnicasImpresion ?? []);
   }
 
+  abrirModalDescuento(): void {
+    this.descuentoAlcance = 'todo';
+    this.descuentoPorcentaje = 0;
+    this.descuentoNota = '';
+    this.descuentoError = '';
+    this.modalDescuentoAbierto = true;
+  }
+
+  cerrarModalDescuento(): void {
+    this.modalDescuentoAbierto = false;
+    this.descuentoError = '';
+  }
+
+  aplicarDescuento(): void {
+    const porcentaje = Number(this.descuentoPorcentaje);
+    if (!Number.isFinite(porcentaje) || porcentaje < 1 || porcentaje > 100) {
+      this.descuentoError = 'El descuento debe ser un porcentaje entre 1 y 100.';
+      return;
+    }
+
+    const nota = this.descuentoNota.trim();
+    if (!nota) {
+      this.descuentoError = 'Captura una nota para indicar el motivo del descuento.';
+      return;
+    }
+
+    const porcentajeNormalizado = Math.floor(porcentaje);
+    this.lineasCotizacion.forEach((linea) => {
+      if (this.descuentoAlcance === 'productos' || this.descuentoAlcance === 'todo') {
+        this.aplicarDescuentoProducto(linea, porcentajeNormalizado, nota);
+      }
+
+      if (this.descuentoAlcance === 'tecnicas' || this.descuentoAlcance === 'todo') {
+        (linea.tecnicasImpresion ?? []).forEach((tecnica) =>
+          this.aplicarDescuentoTecnica(tecnica, porcentajeNormalizado, nota)
+        );
+      }
+    });
+
+    this.busquedaInfo = `Se aplico ${porcentajeNormalizado}% de descuento a ${this.getDescripcionAlcanceDescuento()}.`;
+    this.cerrarModalDescuento();
+  }
+
+  quitarDescuentoProducto(linea: CotizacionLinea): void {
+    linea.precioUnitario = this.obtenerPrecioBase(linea.precioUnitarioBase, linea.precioUnitario);
+    linea.precioUnitarioBase = linea.precioUnitario;
+    linea.porcentajeDescuento = 0;
+    linea.notaDescuento = '';
+  }
+
+  quitarDescuentoTecnica(tecnica: TecnicaImpresionSeleccion): void {
+    tecnica.precioUnitario = this.obtenerPrecioBase(tecnica.precioUnitarioBase, tecnica.precioUnitario ?? 0);
+    tecnica.precioUnitarioBase = tecnica.precioUnitario;
+    tecnica.porcentajeDescuento = 0;
+    tecnica.notaDescuento = '';
+  }
+
   eliminarTecnica(linea: CotizacionLinea, idTecnica: number): void {
     linea.tecnicasImpresion = (linea.tecnicasImpresion ?? []).filter((tecnica) => tecnica.id_tecnica !== idTecnica);
     this.busquedaInfo = `Se elimino una tecnica de impresion de: ${linea.value}`;
@@ -587,7 +649,8 @@ export class CrearCotizacionComponent implements OnInit {
     if (existente) {
       existente.cantidad += cantidadValida;
       existente.descripcion = (descripcionProducto || existente.descripcion || existente.descripcioncorta || existente.label || '').trim();
-      existente.precioUnitario = precioUnitario;
+      existente.precioUnitarioBase = precioUnitario;
+      existente.precioUnitario = this.calcularPrecioConDescuento(precioUnitario, existente.porcentajeDescuento ?? 0);
       existente.montoReglaNegocio = montoReglaNegocio;
       existente.id_almacen = producto.id_almacen;
       existente.coloresSeleccionados = this.mezclarColoresSeleccionados(
@@ -608,6 +671,7 @@ export class CrearCotizacionComponent implements OnInit {
         ...producto,
         descripcion: (descripcionProducto || producto.descripcioncorta || producto.label || '').trim(),
         precioUnitario,
+        precioUnitarioBase: precioUnitario,
         montoReglaNegocio,
         cantidad: cantidadValida,
         coloresSeleccionados,
@@ -631,7 +695,8 @@ export class CrearCotizacionComponent implements OnInit {
     this.productosService.getProductoPrecio(linea.id, this.clienteId, cantidadValida, idsAlmacenes).subscribe({
       next: (response: ProductoPrecioResponse) => {
         const { precioUnitario, montoReglaNegocio } = this.normalizarPrecioProducto(response);
-        linea.precioUnitario = precioUnitario;
+        linea.precioUnitarioBase = precioUnitario;
+        linea.precioUnitario = this.calcularPrecioConDescuento(precioUnitario, linea.porcentajeDescuento ?? 0);
         linea.montoReglaNegocio = montoReglaNegocio;
       }
     });
@@ -686,7 +751,8 @@ export class CrearCotizacionComponent implements OnInit {
         id_producto: linea.id,
         producto_color_cantidad: this.formatearProductoColorCantidad(linea.coloresSeleccionados),
         descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
-        porcentaje_descuento: 0,
+        porcentaje_descuento: linea.porcentajeDescuento ?? 0,
+        nota_descuento: linea.notaDescuento || '',
         cantidad: linea.cantidad,
         tecnicas_impresion: (linea.tecnicasImpresion ?? [])
           .filter((tecnica) => Number(tecnica.id_tecnica) > 0 && Number(tecnica.piezasSeleccionadas) > 0)
@@ -698,7 +764,9 @@ export class CrearCotizacionComponent implements OnInit {
             posiciones: Math.max(0, Math.floor(Number(tecnica.posicionesSeleccionadas) || 0)),
             detalles: (tecnica.detalles || '').trim(),
             consideraciones: (tecnica.consideraciones || '').trim(),
-            nota: (tecnica.nota || '').trim()
+            nota: (tecnica.nota || '').trim(),
+            porcentaje_descuento: tecnica.porcentajeDescuento ?? 0,
+            nota_descuento: tecnica.notaDescuento || ''
           }))
       }))
     };
@@ -720,7 +788,7 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   get subtotalProducto(): number {
-    return this.lineasCotizacion.reduce((acc, linea) => acc + linea.precioUnitario * linea.cantidad, 0);
+    return this.lineasCotizacion.reduce((acc, linea) => acc + this.getImporteLinea(linea), 0);
   }
 
   get subtotalTecnicasImpresion(): number {
@@ -829,7 +897,12 @@ export class CrearCotizacionComponent implements OnInit {
     const piezas = Math.max(0, Number(tecnica.piezasSeleccionadas ?? 0));
     const cargoExtra = Math.max(0, Number(tecnica.cargoExtra ?? 0));
 
-    return precioUnitario * piezas + cargoExtra;
+    const total = this.redondearMoneda(precioUnitario) * piezas + cargoExtra;
+    return this.redondearMoneda(total);
+  }
+
+  getImporteLinea(linea: CotizacionLinea): number {
+    return this.redondearMoneda(linea.precioUnitario) * linea.cantidad;
   }
 
   obtenerOpcionesCantidad(maximo: number, minimo = 0): number[] {
@@ -978,6 +1051,49 @@ export class CrearCotizacionComponent implements OnInit {
     };
   }
 
+  private aplicarDescuentoProducto(linea: CotizacionLinea, porcentaje: number, nota: string): void {
+    const precioBase = this.obtenerPrecioBase(linea.precioUnitarioBase, linea.precioUnitario);
+    linea.precioUnitarioBase = precioBase;
+    linea.porcentajeDescuento = porcentaje;
+    linea.notaDescuento = nota;
+    linea.precioUnitario = this.calcularPrecioConDescuento(precioBase, porcentaje);
+  }
+
+  private aplicarDescuentoTecnica(tecnica: TecnicaImpresionSeleccion, porcentaje: number, nota: string): void {
+    const precioBase = this.obtenerPrecioBase(tecnica.precioUnitarioBase, tecnica.precioUnitario ?? 0);
+    tecnica.precioUnitarioBase = precioBase;
+    tecnica.porcentajeDescuento = porcentaje;
+    tecnica.notaDescuento = nota;
+    tecnica.precioUnitario = this.calcularPrecioConDescuento(precioBase, porcentaje);
+  }
+
+  private obtenerPrecioBase(precioBase: number | undefined, precioActual: number): number {
+    const base = Number(precioBase);
+    return Number.isFinite(base) && base >= 0 ? base : Math.max(0, Number(precioActual) || 0);
+  }
+
+  private calcularPrecioConDescuento(precioBase: number, porcentaje: number): number {
+    const descuento = Math.min(100, Math.max(0, Number(porcentaje) || 0));
+    const precioDescontado = Math.max(0, precioBase * (1 - descuento / 100));
+    return this.redondearMoneda(precioDescontado);
+  }
+
+  private redondearMoneda(valor: number): number {
+    return Math.round((Math.max(0, Number(valor) || 0) + Number.EPSILON) * 100) / 100;
+  }
+
+  private getDescripcionAlcanceDescuento(): string {
+    if (this.descuentoAlcance === 'productos') {
+      return 'los productos';
+    }
+
+    if (this.descuentoAlcance === 'tecnicas') {
+      return 'las tecnicas de impresion';
+    }
+
+    return 'productos y tecnicas de impresion';
+  }
+
   private normalizarTecnicasImpresion(items: TecnicaImpresionApiItem[] | undefined): TecnicaImpresionApiItem[] {
     if (!Array.isArray(items)) {
       return [];
@@ -1119,7 +1235,8 @@ export class CrearCotizacionComponent implements OnInit {
 
           return {
             ...tecnica,
-            precioUnitario: precio.precioUnitario,
+            precioUnitarioBase: precio.precioUnitario,
+            precioUnitario: this.calcularPrecioConDescuento(precio.precioUnitario, tecnica.porcentajeDescuento ?? 0),
             cargoExtra: precio.cargoExtra
           };
         });
@@ -1303,7 +1420,8 @@ export class CrearCotizacionComponent implements OnInit {
     linea.cantidad = cantidad;
     linea.descripcion = (descripcion || linea.descripcioncorta || linea.label || '').trim();
     linea.coloresSeleccionados = coloresSeleccionados;
-    linea.precioUnitario = precioUnitario;
+    linea.precioUnitarioBase = precioUnitario;
+    linea.precioUnitario = this.calcularPrecioConDescuento(precioUnitario, linea.porcentajeDescuento ?? 0);
     linea.montoReglaNegocio = montoReglaNegocio;
     this.sincronizarIdsAlmacenCotizacion();
   }
