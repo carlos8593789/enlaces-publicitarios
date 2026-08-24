@@ -38,6 +38,8 @@
 
         <p *ngIf="clienteBusquedaError" class="text-danger small mb-0">{{ clienteBusquedaError }}</p>
         <p *ngIf="clienteBusquedaInfo" class="text-success small mb-0">{{ clienteBusquedaInfo }}</p>
+        <p *ngIf="consultandoVendedorSugerido" class="text-muted small mb-0">Validando vendedor sugerido...</p>
+        <p *ngIf="vendedorSugeridoError" class="text-danger small mb-0">{{ vendedorSugeridoError }}</p>
       </div>
 
       <p *ngIf="clienteError" class="text-danger small mt-2 mb-0">{{ clienteError }}</p>
@@ -64,6 +66,16 @@
           <div class="col-12 col-md-3" *ngIf="clienteId !== null">
             <span class="text-muted d-block small">ID Cliente</span>
             <strong>#{{ clienteId }}</strong>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Vendedor sugerido</span>
+            <ng-container *ngIf="vendedorSugerido as vendedor; else sinVendedorSugerido">
+              <strong>{{ vendedor.nombre }}</strong>
+              <div class="small text-muted">{{ vendedor.correo }}</div>
+            </ng-container>
+            <ng-template #sinVendedorSugerido>
+              <strong>Sin vendedor sugerido</strong>
+            </ng-template>
           </div>
         </div>
       </div>
@@ -402,6 +414,39 @@
     </div>
   </div>
 </section>
+
+<div class="modal-backdrop-cot" *ngIf="alertaVendedorSugeridoAbierta" (click)="cerrarAlertaVendedorSugerido()"></div>
+
+<div class="modal-cantidad" *ngIf="alertaVendedorSugeridoAbierta" role="dialog" aria-modal="true" aria-labelledby="modalVendedorSugeridoTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalVendedorSugeridoTitulo" class="h6 mb-3">Cliente asignado a otro vendedor</h4>
+
+    <p class="small mb-2">
+      El cliente seleccionado tiene asignado como vendedor sugerido a:
+    </p>
+
+    <div class="border rounded p-2 bg-light mb-3" *ngIf="vendedorSugerido as vendedor">
+      <div><strong>{{ vendedor.nombre }}</strong></div>
+      <div class="small text-muted">{{ vendedor.correo }}</div>
+      <div class="small text-muted">ID: {{ vendedor.id }}</div>
+    </div>
+
+    <p class="small text-muted mb-3">
+      Puedes continuar con la cotización o notificar por correo al vendedor sugerido.
+    </p>
+
+    <p *ngIf="enviandoCorreoVendedorSugerido" class="text-muted small mb-2">Enviando correo...</p>
+    <p *ngIf="enviarCorreoVendedorSugeridoExito" class="text-success small mb-2">{{ enviarCorreoVendedorSugeridoExito }}</p>
+    <p *ngIf="enviarCorreoVendedorSugeridoError" class="text-danger small mb-2">{{ enviarCorreoVendedorSugeridoError }}</p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarAlertaVendedorSugerido()">Cerrar</button>
+      <button type="button" class="btn btn-primary" (click)="enviarCorreoVendedorSugerido()" [disabled]="enviandoCorreoVendedorSugerido || !clienteId">
+        {{ enviandoCorreoVendedorSugerido ? 'Enviando...' : 'Enviar correo' }}
+      </button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop-cot" *ngIf="modalDescuentoAbierto" (click)="cerrarModalDescuento()"></div>
 

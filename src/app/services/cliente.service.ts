@@ -34,6 +34,23 @@ export interface ClienteBusquedaResponse {
   data: ClienteBusquedaItem[];
 }
 
+export interface VendedorSugeridoItem {
+  id: number;
+  nombre: string;
+  correo: string;
+}
+
+export interface ClienteVendedorSugeridoData {
+  vendedor_sugerido: VendedorSugeridoItem | null;
+  esMismoVendedor: boolean;
+}
+
+export interface ClienteVendedorSugeridoResponse {
+  success: boolean;
+  message: string;
+  data: ClienteVendedorSugeridoData;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -65,5 +82,21 @@ export class ClienteService {
         map((response) => (Array.isArray(response?.data) ? response.data : [])),
         catchError(() => of([]))
       );
+  }
+
+  getVendedorSugerido(idCliente: number): Observable<ClienteVendedorSugeridoResponse> {
+    if (!idCliente || Number.isNaN(idCliente)) {
+      return throwError(() => new Error('ID de cliente inválido.'));
+    }
+
+    return this.http.get<ClienteVendedorSugeridoResponse>(`${this.apiUrl}/${idCliente}/vendedor-sugerido`);
+  }
+
+  sendCorreoVendedorSugerido(idCliente: number): Observable<{ success: boolean; message: string }> {
+    if (!idCliente || Number.isNaN(idCliente)) {
+      return throwError(() => new Error('ID de cliente inválido.'));
+    }
+
+    return this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/${idCliente}/vendedor-sugerido/correo`, {});
   }
 }

@@ -3,7 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
-import { ClienteBusquedaItem, ClienteDetalle, ClienteService } from '../../../services/cliente.service';
+import {
+  ClienteBusquedaItem,
+  ClienteDetalle,
+  ClienteService,
+  VendedorSugeridoItem
+} from '../../../services/cliente.service';
 import { environment } from '../../../../environments/environment';
 import {
   CotizacionColorSeleccion,
@@ -110,6 +115,13 @@ export class CrearCotizacionComponent implements OnInit {
   descuentoPorcentaje = 0;
   descuentoNota = '';
   descuentoError = '';
+  consultandoVendedorSugerido = false;
+  alertaVendedorSugeridoAbierta = false;
+  vendedorSugerido: VendedorSugeridoItem | null = null;
+  vendedorSugeridoError = '';
+  enviandoCorreoVendedorSugerido = false;
+  enviarCorreoVendedorSugeridoError = '';
+  enviarCorreoVendedorSugeridoExito = '';
 
   ngOnInit(): void {
     this.cargarCondicionesVenta();
@@ -216,6 +228,41 @@ export class CrearCotizacionComponent implements OnInit {
     this.clienteBusquedaInfo = `Cliente seleccionado: ${cliente.label}`;
     this.terminoBusquedaCliente = cliente.label;
     this.clientesEncontrados = [];
+    this.vendedorSugerido = null;
+    this.alertaVendedorSugeridoAbierta = false;
+    this.vendedorSugeridoError = '';
+    this.enviarCorreoVendedorSugeridoError = '';
+    this.enviarCorreoVendedorSugeridoExito = '';
+
+    this.consultarVendedorSugerido(cliente.id);
+  }
+
+  cerrarAlertaVendedorSugerido(): void {
+    this.alertaVendedorSugeridoAbierta = false;
+    this.enviarCorreoVendedorSugeridoError = '';
+    this.enviarCorreoVendedorSugeridoExito = '';
+  }
+
+  enviarCorreoVendedorSugerido(): void {
+    if (!this.clienteId || Number.isNaN(this.clienteId)) {
+      return;
+    }
+
+    this.enviandoCorreoVendedorSugerido = true;
+    this.enviarCorreoVendedorSugeridoError = '';
+    this.enviarCorreoVendedorSugeridoExito = '';
+
+    this.clienteService.sendCorreoVendedorSugerido(this.clienteId).subscribe({
+      next: (response) => {
+        this.enviandoCorreoVendedorSugerido = false;
+        this.enviarCorreoVendedorSugeridoExito = response?.message || 'Correo enviado al vendedor sugerido.';
+        this.alertaVendedorSugeridoAbierta = false;
+      },
+      error: () => {
+        this.enviandoCorreoVendedorSugerido = false;
+        this.enviarCorreoVendedorSugeridoError = 'No se pudo enviar el correo al vendedor sugerido.';
+      }
+    });
   }
 
   limpiarBusquedaCliente(): void {
@@ -746,7 +793,7 @@ export class CrearCotizacionComponent implements OnInit {
       permitir_pago: this.permitirPago,
       riesgos: this.riesgos.trim(),
       condiciones_venta: this.condicionesVenta.trim(),
-      id_vendedor_sugerido: this.clienteId,
+      id_vendedor_sugerido: this.vendedorSugerido?.id ?? this.clienteId,
       productos: this.lineasCotizacion.map((linea) => ({
         id_producto: linea.id,
         producto_color_cantidad: this.formatearProductoColorCantidad(linea.coloresSeleccionados),
@@ -1092,6 +1139,34 @@ export class CrearCotizacionComponent implements OnInit {
     }
 
     return 'productos y tecnicas de impresion';
+  }
+
+  private consultarVendedorSugerido(idCliente: number): void {
+    this.consultandoVendedorSugerido = true;
+    this.vendedorSugeridoError = '';
+
+    this.clienteService.getVendedorSugerido(idCliente).subscribe({
+      next: (response) => {
+        this.consultandoVendedorSugerido = false;
+        const data = response?.data;
+        this.vendedorSugerido = data?.vendedor_sugerido ?? null;
+        this.enviarCorreoVendedorSugeridoError = '';
+        this.enviarCorreoVendedorSugeridoExito = '';
+
+        if (data && data.esMismoVendedor === false && this.vendedorSugerido) {
+          this.alertaVendedorSugeridoAbierta = true;
+          return;
+        }
+
+        this.alertaVendedorSugeridoAbierta = false;
+      },
+      error: () => {
+        this.consultandoVendedorSugerido = false;
+        this.vendedorSugerido = null;
+        this.alertaVendedorSugeridoAbierta = false;
+        this.vendedorSugeridoError = 'No se pudo validar el vendedor sugerido del cliente.';
+      }
+    });
   }
 
   private normalizarTecnicasImpresion(items: TecnicaImpresionApiItem[] | undefined): TecnicaImpresionApiItem[] {
