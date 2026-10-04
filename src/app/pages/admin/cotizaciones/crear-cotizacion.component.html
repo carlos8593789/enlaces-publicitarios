@@ -1,0 +1,787 @@
+<section class="container-fluid py-3">
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 class="h5 mb-0">Crear cotizacion</h2>
+        <span class="badge text-bg-light border">IVA {{ ivaRate * 100 }}%</span>
+      </div>
+
+      <p class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
+
+      <div class="cliente-buscador mt-3">
+        <label class="form-label small">Buscar cliente</label>
+        <div class="input-group mb-2">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Buscar por nombre, telefono o correo"
+            [(ngModel)]="terminoBusquedaCliente"
+            (input)="limpiarBusquedaCliente()"
+            (keyup.enter)="buscarClientes()"
+          />
+          <button class="btn btn-outline-primary" type="button" (click)="buscarClientes()" [disabled]="buscandoClientes">
+            {{ buscandoClientes ? 'Buscando...' : 'Buscar cliente' }}
+          </button>
+        </div>
+
+        <div class="lista-clientes mb-2" *ngIf="clientesEncontrados.length > 0">
+          <button
+            type="button"
+            class="cliente-item"
+            *ngFor="let clienteEncontrado of clientesEncontrados"
+            (click)="seleccionarCliente(clienteEncontrado)"
+          >
+            <div class="fw-semibold">{{ clienteEncontrado.value }}</div>
+            <div class="small text-muted text-truncate">{{ clienteEncontrado.label }}</div>
+          </button>
+        </div>
+
+        <p *ngIf="clienteBusquedaError" class="text-danger small mb-0">{{ clienteBusquedaError }}</p>
+        <p *ngIf="clienteBusquedaInfo" class="text-success small mb-0">{{ clienteBusquedaInfo }}</p>
+        <p *ngIf="consultandoVendedorSugerido" class="text-muted small mb-0">Validando vendedor sugerido...</p>
+        <p *ngIf="vendedorSugeridoError" class="text-danger small mb-0">{{ vendedorSugeridoError }}</p>
+      </div>
+
+      <p *ngIf="clienteError" class="text-danger small mt-2 mb-0">{{ clienteError }}</p>
+      <div *ngIf="isLoadingCliente" class="text-muted small mt-2">Cargando cliente...</div>
+
+      <div *ngIf="cliente" class="cliente-box mt-3">
+        <div class="row g-2">
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Nombre</span>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <strong>{{ cliente.nombre }}</strong>
+              <span *ngIf="cliente.distribuidor === 1" class="badge text-bg-primary">Distribuidor</span>
+              <span *ngIf="cliente.distribuidor === 2" class="badge text-bg-warning">Intermediario</span>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Correo</span>
+            <strong>{{ cliente.email || 'Sin email' }}</strong>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Telefono</span>
+            <strong>{{ clienteTelefono }}</strong>
+          </div>
+          <div class="col-12 col-md-3" *ngIf="clienteId !== null">
+            <span class="text-muted d-block small">ID Cliente</span>
+            <strong>#{{ clienteId }}</strong>
+          </div>
+          <div class="col-12 col-md-3">
+            <span class="text-muted d-block small">Vendedor sugerido</span>
+            <ng-container *ngIf="vendedorSugerido as vendedor; else sinVendedorSugerido">
+              <strong>{{ vendedor.nombre }}</strong>
+              <div class="small text-muted">{{ vendedor.correo }}</div>
+            </ng-container>
+            <ng-template #sinVendedorSugerido>
+              <strong>Sin vendedor sugerido</strong>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <div class="cotizacion-meta mt-3">
+        <h3 class="h6 mb-3">Datos de la cotizacion</h3>
+
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label small">Riesgos</label>
+            <textarea
+              required
+              class="form-control"
+              rows="2"
+              [(ngModel)]="riesgos"
+              placeholder="Ej. Sujeto a disponibilidad de inventario"
+            ></textarea>
+            <div *ngIf="!riesgos.trim()" class="text-danger small mt-1">Los riesgos son obligatorios.</div>
+          </div>
+          <div class="col-12 col-lg-6">
+            <label class="form-label small">Condiciones de venta</label>
+            <select
+              class="form-select mb-2"
+              [(ngModel)]="idCondicionVentaSeleccionada"
+              (ngModelChange)="seleccionarCondicionVenta($event)"
+            >
+              <option value="">Selecciona una condicion de venta</option>
+              <option *ngFor="let condicion of condicionesVentaCatalogo" [value]="condicion.id">
+                {{ condicion.nombre }}
+              </option>
+            </select>
+            <div *ngIf="cargandoCondicionesVenta" class="text-muted small mb-2">Cargando condiciones de venta...</div>
+            <p *ngIf="condicionesVentaError" class="text-danger small mb-2">{{ condicionesVentaError }}</p>
+            <textarea
+              required
+              class="form-control"
+              rows="3"
+              [(ngModel)]="condicionesVenta"
+              placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
+            ></textarea>
+            <div *ngIf="!condicionesVenta.trim()" class="text-danger small mt-1">Las condiciones de venta son obligatorias.</div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="permitirPago"
+                [(ngModel)]="permitirPago"
+              />
+              <label class="form-check-label" for="permitirPago">Permitir pago</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <h3 class="h6 mb-3">Buscar productos</h3>
+      <p *ngIf="clienteId === null" class="text-warning small mb-2">
+        Primero selecciona un cliente para comenzar la cotizacion.
+      </p>
+
+      <div class="input-group mb-3">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar por clave o nombre"
+          [(ngModel)]="terminoBusqueda"
+          (input)="limpiarResultadosBusqueda()"
+          (keyup.enter)="buscarProductos()"
+        />
+        <button class="btn btn-outline-primary" type="button" (click)="buscarProductos()" [disabled]="buscandoProductos">
+          {{ buscandoProductos ? 'Buscando...' : 'Buscar' }}
+        </button>
+      </div>
+
+      <div class="lista-resultados mb-3" *ngIf="productosEncontrados.length > 0">
+        <div
+          class="producto-item"
+          *ngFor="let producto of productosEncontrados; trackBy: trackByProducto"
+        >
+          <div class="producto-item-main">
+            <ng-container *ngIf="producto.imagen; else sinImagenBusqueda">
+              <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
+            </ng-container>
+            <ng-template #sinImagenBusqueda>
+              <div class="producto-thumb-placeholder">Sin imagen</div>
+            </ng-template>
+
+            <div>
+              <div class="producto-label">{{ producto.value }}</div>
+              <div class="small text-muted">{{ producto.label }}</div>
+              <div class="small text-primary fw-semibold" *ngIf="producto.bbb === 1">
+                Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-sm btn-primary"
+            (click)="abrirModalCantidad(producto)"
+            [disabled]="clienteId === null"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
+
+      <p *ngIf="productosError" class="text-danger small mb-0">{{ productosError }}</p>
+      <p *ngIf="busquedaInfo" class="text-success small mb-0">{{ busquedaInfo }}</p>
+      <p class="text-muted small mb-0">Selecciona "Agregar" para capturar la cantidad e incluir el producto en la cotizacion.</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+        <h3 class="h6 mb-0">Productos agregados</h3>
+        <div class="d-flex gap-2">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            (click)="abrirModalDescuento()"
+            [disabled]="lineasCotizacion.length === 0"
+          >
+            Aplicar descuento
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger"
+            (click)="limpiarCotizacion()"
+            [disabled]="lineasCotizacion.length === 0"
+          >
+            Vaciar
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-3 align-items-start">
+        <div class="col-12 col-lg-8">
+          <p *ngIf="lineasCotizacion.length === 0" class="text-muted small mb-0">
+            Aun no agregas productos a la cotizacion.
+          </p>
+
+          <div class="tabla-wrapper" *ngIf="lineasCotizacion.length > 0">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-end">Precio</th>
+                  <th style="width: 120px">Cantidad</th>
+                  <th class="text-end">Importe</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let linea of lineasCotizacion; trackBy: trackByLinea">
+                  <tr>
+                    <td>
+                      <div class="producto-cell">
+                        <ng-container *ngIf="linea.imagen; else sinImagenProducto">
+                          <img [src]="linea.imagen" [alt]="linea.value" class="producto-thumb" />
+                        </ng-container>
+                        <ng-template #sinImagenProducto>
+                          <div class="producto-thumb-placeholder">Sin imagen</div>
+                        </ng-template>
+                        <div>
+                          <div class="fw-semibold">{{ linea.value }}</div>
+                          <div class="small text-muted">{{ linea.label }}</div>
+                          <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
+                            Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+                          </div>
+                          <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
+                            Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
+                          </div>
+                          <div
+                            class="small text-secondary"
+                            *ngIf="linea.coloresSeleccionados?.length"
+                            [title]="formatearColoresSeleccionados(linea.coloresSeleccionados)"
+                          >
+                            Colores: {{ formatearColoresSeleccionadosCompacto(linea.coloresSeleccionados) }}
+                          </div>
+                          <div class="small text-muted">
+                            {{ getResumenColoresSeleccionados(linea.coloresSeleccionados) }}
+                          </div>
+                          <div class="small regla-negocio" *ngIf="linea.montoReglaNegocio > 0">
+                            Producto con cuota para vender desde 1 pza: {{ linea.montoReglaNegocio | currency: 'MXN' }}
+                          </div>
+                          <button
+                            type="button"
+                            class="btn-editar-colores ms-2"
+                            (click)="abrirModalAgregarTecnicas(linea)"
+                          >
+                            Agregar tecnica
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-editar-colores ms-2 text-danger"
+                            *ngIf="(linea.porcentajeDescuento ?? 0) > 0"
+                            (click)="quitarDescuentoProducto(linea)"
+                          >
+                            Quitar descuento
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-end">
+                      <div *ngIf="(linea.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+                        {{ (linea.precioUnitarioBase ?? linea.precioUnitario) | currency: 'MXN' }}
+                      </div>
+                      <div>{{ linea.precioUnitario | currency: 'MXN' }}</div>
+                    </td>
+                    <td>
+                      <div class="cantidad-display">{{ linea.cantidad }}</div>
+                    </td>
+                    <td class="text-end">{{ getImporteLinea(linea) | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          (click)="actualizarCantidadDesdeModal(linea)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          (click)="eliminarProducto(linea.id)"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr class="tecnica-row" *ngFor="let tecnica of linea.tecnicasImpresion; trackBy: trackByTecnicaImpresion">
+                    <td>
+                      <div class="producto-cell tecnica-cell">
+                        <ng-container *ngIf="tecnica.imagen; else sinImagenTecnicaResumen">
+                          <img [src]="tecnica.imagen" [alt]="tecnica.nombre" class="producto-thumb tecnica-thumb" />
+                        </ng-container>
+                        <ng-template #sinImagenTecnicaResumen>
+                          <div class="producto-thumb-placeholder tecnica-thumb">Sin imagen</div>
+                        </ng-template>
+                        <div>
+                          <div class="fw-semibold">{{ tecnica.nombre }}</div>
+                          <div class="small text-muted">
+                            {{ tecnica.tintasSeleccionadas }} tinta(s) / {{ tecnica.posicionesSeleccionadas }} posicion(es)
+                          </div>
+                          <div class="small text-muted" *ngIf="tecnica.color">
+                            Color: {{ tecnica.color }}
+                          </div>
+                          <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
+                            Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
+                          </div>
+                          <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
+                            Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
+                          </div>
+                          <button
+                            type="button"
+                            class="btn-editar-colores ms-2 text-danger"
+                            *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0"
+                            (click)="quitarDescuentoTecnica(tecnica)"
+                          >
+                            Quitar descuento
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-end">
+                      <div *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+                        {{ (tecnica.precioUnitarioBase ?? tecnica.precioUnitario ?? 0) | currency: 'MXN' }}
+                      </div>
+                      <div>{{ (tecnica.precioUnitario ?? 0) | currency: 'MXN' }}</div>
+                    </td>
+                    <td>
+                      <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
+                    </td>
+                    <td class="text-end">{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          (click)="abrirModalEditarTecnicas(linea)"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          (click)="eliminarTecnica(linea, tecnica.id_tecnica)"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="resumen-card">
+            <div class="small text-muted">Productos totales</div>
+            <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
+            <div>Subtotal del producto: <strong>{{ subtotalProducto | currency: 'MXN' }}</strong></div>
+            <div>Subtotal técnica de impresión: <strong>{{ subtotalTecnicasImpresion | currency: 'MXN' }}</strong></div>
+            <div>Cuota para vender desde 1 pza del producto: <strong>{{ totalMontoReglaNegocio | currency: 'MXN' }}</strong></div>
+            <div>SUBTOTAL: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
+            <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
+            <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
+
+            <button
+              type="button"
+              class="btn btn-success w-100 mt-3"
+              (click)="crearCotizacion()"
+              [disabled]="creandoCotizacion || lineasCotizacion.length === 0 || clienteId === null"
+            >
+              {{ creandoCotizacion ? 'Creando cotizacion...' : 'Crear cotizacion' }}
+            </button>
+
+            <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
+            <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">{{ crearCotizacionExito }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="modal-backdrop-cot" *ngIf="alertaVendedorSugeridoAbierta" (click)="cerrarAlertaVendedorSugerido()"></div>
+
+<div class="modal-cantidad" *ngIf="alertaVendedorSugeridoAbierta" role="dialog" aria-modal="true" aria-labelledby="modalVendedorSugeridoTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalVendedorSugeridoTitulo" class="h6 mb-3">Cliente asignado a otro vendedor</h4>
+
+    <p class="small mb-2">
+      El cliente seleccionado tiene asignado como vendedor sugerido a:
+    </p>
+
+    <div class="border rounded p-2 bg-light mb-3" *ngIf="vendedorSugerido as vendedor">
+      <div><strong>{{ vendedor.nombre }}</strong></div>
+      <div class="small text-muted">{{ vendedor.correo }}</div>
+      <div class="small text-muted">ID: {{ vendedor.id }}</div>
+    </div>
+
+    <p class="small text-muted mb-3">
+      Puedes continuar con la cotización o notificar por correo al vendedor sugerido.
+    </p>
+
+    <p *ngIf="enviandoCorreoVendedorSugerido" class="text-muted small mb-2">Enviando correo...</p>
+    <p *ngIf="enviarCorreoVendedorSugeridoExito" class="text-success small mb-2">{{ enviarCorreoVendedorSugeridoExito }}</p>
+    <p *ngIf="enviarCorreoVendedorSugeridoError" class="text-danger small mb-2">{{ enviarCorreoVendedorSugeridoError }}</p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarAlertaVendedorSugerido()">Cerrar</button>
+      <button type="button" class="btn btn-primary" (click)="enviarCorreoVendedorSugerido()" [disabled]="enviandoCorreoVendedorSugerido || !clienteId">
+        {{ enviandoCorreoVendedorSugerido ? 'Enviando...' : 'Enviar correo' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop-cot" *ngIf="modalDescuentoAbierto" (click)="cerrarModalDescuento()"></div>
+
+<div class="modal-cantidad" *ngIf="modalDescuentoAbierto" role="dialog" aria-modal="true" aria-labelledby="modalDescuentoTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalDescuentoTitulo" class="h6 mb-3">Aplicar descuento</h4>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoAlcance">Aplicar a</label>
+      <select id="descuentoAlcance" class="form-select form-select-sm" [(ngModel)]="descuentoAlcance">
+        <option value="productos">Solo productos</option>
+        <option value="tecnicas">Solo tecnicas de impresion</option>
+        <option value="todo">Productos y tecnicas de impresion</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoPorcentaje">Porcentaje de descuento</label>
+      <div class="input-group input-group-sm">
+        <input
+          id="descuentoPorcentaje"
+          type="number"
+          class="form-control"
+          min="1"
+          max="100"
+          step="1"
+          [(ngModel)]="descuentoPorcentaje"
+        />
+        <span class="input-group-text">%</span>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small" for="descuentoNota">Motivo del descuento</label>
+      <textarea
+        id="descuentoNota"
+        class="form-control form-control-sm"
+        rows="3"
+        [(ngModel)]="descuentoNota"
+        placeholder="Ej. Precio especial autorizado por ventas"
+      ></textarea>
+    </div>
+
+    <p *ngIf="descuentoError" class="text-danger small mb-3">{{ descuentoError }}</p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalDescuento()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="aplicarDescuento()">Aplicar descuento</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop-cot" *ngIf="confirmarTecnicasImpresionAbierto && !modalTecnicasImpresionAbierto" (click)="confirmarAgregarSinTecnicas()"></div>
+
+<div
+  class="modal-tecnicas modal-tecnicas-confirmacion"
+  *ngIf="confirmarTecnicasImpresionAbierto && !modalTecnicasImpresionAbierto"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="confirmarTecnicasTitulo"
+>
+  <div class="modal-tecnicas-card modal-tecnicas-confirmacion-card" (click)="$event.stopPropagation()">
+    <h4 id="confirmarTecnicasTitulo" class="h6 mb-2">Tecnica de impresion</h4>
+    <p class="small text-muted mb-3 mb-lg-4">¿Requiere agregar alguna tecnica de impresion?</p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="confirmarAgregarSinTecnicas()">
+        No, continuar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="abrirModalTecnicasImpresion()" [disabled]="cargandoTecnicasImpresion">
+        Si, agregar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop-cot" *ngIf="modalTecnicasImpresionAbierto" (click)="cerrarModalTecnicasImpresion()"></div>
+
+<div class="modal-tecnicas" *ngIf="modalTecnicasImpresionAbierto" role="dialog" aria-modal="true" aria-labelledby="modalTecnicasTitulo">
+  <div class="modal-tecnicas-card" (click)="$event.stopPropagation()">
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+      <div>
+        <h4 id="modalTecnicasTitulo" class="h6 mb-1">
+          {{ modoModalTecnicas === 'editar-linea' ? 'Editar tecnicas de impresion' : (modoModalTecnicas === 'agregar-linea' ? 'Agregar tecnicas de impresion' : 'Tecnicas de impresion del producto') }}
+        </h4>
+        <p class="small text-muted mb-0">Selecciona una o varias tecnicas y define cuantas tintas o posiciones requiere cada una.</p>
+      </div>
+      <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalTecnicasImpresion()"></button>
+    </div>
+
+    <div *ngIf="productoPendienteAgregar as productoPendiente" class="d-flex gap-2 align-items-center mb-3">
+      <ng-container *ngIf="productoPendiente.producto.imagen; else sinImagenTecnica">
+        <img [src]="productoPendiente.producto.imagen" [alt]="productoPendiente.producto.value" class="producto-thumb" />
+      </ng-container>
+      <ng-template #sinImagenTecnica>
+        <div class="producto-thumb-placeholder">Sin imagen</div>
+      </ng-template>
+      <div>
+        <div class="fw-semibold">{{ productoPendiente.producto.value }}</div>
+        <div class="small text-muted">{{ productoPendiente.producto.label }}</div>
+      </div>
+    </div>
+
+    <div *ngIf="cargandoTecnicasImpresion" class="text-muted small mb-3">
+      Cargando tecnicas de impresion...
+    </div>
+
+    <p *ngIf="tecnicasImpresionError" class="text-danger small mb-3">{{ tecnicasImpresionError }}</p>
+
+    <div class="small text-muted mb-3" *ngIf="productoPendienteAgregar as productoPendiente">
+      Piezas asignadas a tecnicas:
+      <strong>{{ getPiezasTecnicasExistentes() + obtenerTotalPiezasTecnicasSeleccionadas() }}</strong>
+      /
+      <strong>{{ productoPendiente.cantidad }}</strong>
+    </div>
+
+    <div class="tecnicas-lista" *ngIf="!cargandoTecnicasImpresion && tecnicasImpresionCatalogo.length > 0">
+      <div class="tecnica-card" *ngFor="let tecnica of tecnicasImpresionCatalogo; trackBy: trackByTecnicaImpresion">
+        <div class="tecnica-card-header">
+          <div class="d-flex align-items-center gap-2">
+            <ng-container *ngIf="tecnica.imagen; else sinImagenTecnicaItem">
+              <img [src]="tecnica.imagen" [alt]="tecnica.nombre" class="producto-thumb" />
+            </ng-container>
+            <ng-template #sinImagenTecnicaItem>
+              <div class="producto-thumb-placeholder">Sin imagen</div>
+            </ng-template>
+            <div>
+              <div class="fw-semibold">{{ tecnica.nombre }}</div>
+              <div class="small text-muted">Tecnica #{{ tecnica.numero }}</div>
+            </div>
+          </div>
+
+          <div class="form-check form-switch mb-0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              [id]="'tecnica-' + tecnica.id_tecnica"
+              [(ngModel)]="tecnica.seleccionada"
+              (ngModelChange)="alternarTecnicaImpresion(tecnica, $event)"
+            />
+            <label class="form-check-label small" [for]="'tecnica-' + tecnica.id_tecnica">Usar tecnica</label>
+          </div>
+        </div>
+
+        <div class="tecnica-selectores">
+          <label class="small text-muted">Piezas</label>
+          <input
+            type="number"
+            class="form-control form-control-sm"
+            min="0"
+            [max]="obtenerMaximoPiezasTecnica(tecnica)"
+            [disabled]="!tecnica.seleccionada"
+            [ngModel]="tecnica.piezasSeleccionadas"
+            (ngModelChange)="actualizarPiezasTecnica(tecnica, $event)"
+          />
+
+          <label class="small text-muted">Tintas</label>
+          <select
+            class="form-select form-select-sm"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.tintasSeleccionadas"
+            (ngModelChange)="actualizarTintasTecnica(tecnica, $event)"
+          >
+            <option *ngFor="let tinta of obtenerOpcionesCantidad(tecnica.cantidad_tintas, 1)" [ngValue]="tinta">
+              {{ tinta }}
+            </option>
+          </select>
+
+          <label class="small text-muted">Posiciones</label>
+          <select
+            class="form-select form-select-sm"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.posicionesSeleccionadas"
+            (ngModelChange)="actualizarPosicionesTecnica(tecnica, $event)"
+          >
+            <option *ngFor="let posicion of obtenerOpcionesCantidad(tecnica.cantidad_posiciones, 1)" [ngValue]="posicion">
+              {{ posicion }}
+            </option>
+          </select>
+
+          <label class="small text-muted">Color</label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="Ej. Rojo"
+            [disabled]="!tecnica.seleccionada"
+            [ngModel]="tecnica.color"
+            (ngModelChange)="actualizarColorTecnica(tecnica, $event)"
+          />
+
+          <label class="small text-muted">Detalles</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.detalles"
+            placeholder="Detalle de la tecnica"
+          ></textarea>
+
+          <label class="small text-muted">Consideraciones</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.consideraciones"
+            placeholder="Consideraciones de la tecnica"
+          ></textarea>
+
+          <label class="small text-muted">Nota</label>
+          <textarea
+            class="form-control form-control-sm"
+            rows="2"
+            [disabled]="!tecnica.seleccionada"
+            [(ngModel)]="tecnica.nota"
+            placeholder="Agrega una nota"
+          ></textarea>
+
+          <div class="small text-muted tecnica-piezas-restantes">
+            Máximo disponible: {{ obtenerMaximoPiezasTecnica(tecnica) }} pieza(s)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="small text-muted mb-3" *ngIf="!cargandoTecnicasImpresion && tecnicasImpresionCatalogo.length === 0">
+      No se encontraron tecnicas aplicables para este producto.
+    </p>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalTecnicasImpresion()" [disabled]="calculandoPrecioTecnicas">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmarTecnicasSeleccionadas()" [disabled]="cargandoTecnicasImpresion || calculandoPrecioTecnicas">
+        {{ calculandoPrecioTecnicas ? 'Calculando precio...' : (modoModalTecnicas === 'editar-linea' ? 'Guardar cambios' : (modoModalTecnicas === 'agregar-linea' ? 'Agregar tecnicas' : 'Agregar a cotizacion')) }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop-cot" *ngIf="modalCantidadAbierto" (click)="cerrarModalCantidad()"></div>
+
+<div class="modal-cantidad" *ngIf="modalCantidadAbierto" role="dialog" aria-modal="true" aria-labelledby="modalCantidadTitulo">
+  <div class="modal-cantidad-card" (click)="$event.stopPropagation()">
+    <h4 id="modalCantidadTitulo" class="h6 mb-3">
+      {{ lineaEditando ? 'Editar cantidad por color' : 'Agregar producto a cotizacion' }}
+    </h4>
+
+    <div *ngIf="productoSeleccionado as producto" class="d-flex gap-2 align-items-center mb-3">
+      <ng-container *ngIf="producto.imagen; else sinImagenModal">
+        <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
+      </ng-container>
+      <ng-template #sinImagenModal>
+        <div class="producto-thumb-placeholder">Sin imagen</div>
+      </ng-template>
+      <div>
+        <div class="fw-semibold">{{ producto.value }}</div>
+        <div class="small text-muted">{{ producto.label }}</div>
+        <div class="small text-muted">Stock local: {{ stockLocalProducto }}</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label small">Informacion del producto</label>
+      <textarea
+        class="form-control form-control-sm"
+        rows="3"
+        [(ngModel)]="descripcionProductoModal"
+        placeholder="Descripcion del producto"
+      ></textarea>
+    </div>
+
+    <div *ngIf="cargandoStockProducto" class="small text-muted mb-3">
+      Cargando stock por color...
+    </div>
+
+    <p *ngIf="stockProductoError" class="text-danger small mb-3">{{ stockProductoError }}</p>
+
+    <div class="stock-colores" *ngIf="!cargandoStockProducto && coloresStockProducto.length > 0">
+      <div class="stock-color-card" *ngFor="let colorItem of coloresStockProducto; trackBy: trackByColor">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <ng-container *ngIf="colorItem.imagen; else sinImagenColorStock">
+            <img [src]="colorItem.imagen" [alt]="colorItem.color" class="producto-thumb" />
+          </ng-container>
+          <ng-template #sinImagenColorStock>
+            <div class="producto-thumb-placeholder">Sin imagen</div>
+          </ng-template>
+          <div>
+            <div class="fw-semibold">{{ colorItem.color }}</div>
+            <div class="small text-muted">Stock total: {{ colorItem.total }}</div>
+          </div>
+        </div>
+
+        <div class="stock-almacen-lista mb-2" *ngIf="colorItem.stock.length > 0">
+          <div class="stock-almacen-item" *ngFor="let stockItem of colorItem.stock">
+            <div class="small stock-almacen-nombre" [innerHTML]="stockItem.nombre"></div>
+            <div class="small">
+              Cantidad: <strong>{{ stockItem.cantidad }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <label class="form-label small mb-1">
+          {{ lineaEditando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
+        </label>
+        <input
+          type="number"
+          class="form-control form-control-sm"
+          min="0"
+          [max]="colorItem.total"
+          [ngModel]="colorItem.cantidadSeleccionada"
+          (ngModelChange)="actualizarCantidadColor(colorItem, $event)"
+        />
+      </div>
+    </div>
+
+    <p class="small text-muted mb-3" *ngIf="!cargandoStockProducto && coloresStockProducto.length === 0">
+      No se encontraron colores para este producto.
+    </p>
+
+    <div class="small mb-3">
+      Total seleccionado:
+      <strong>{{ cantidadTotalSeleccionadaEnModal }}</strong>
+    </div>
+
+    <div *ngIf="calculandoPrecioProducto" class="small text-muted mb-3">
+      Calculando precio del producto...
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalCantidad()" [disabled]="calculandoPrecioProducto">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" (click)="confirmarAgregarProducto()" [disabled]="calculandoPrecioProducto">
+        {{ calculandoPrecioProducto ? 'Calculando...' : (lineaEditando ? 'Actualizar' : 'Agregar') }}
+      </button>
+    </div>
+  </div>
+</div>

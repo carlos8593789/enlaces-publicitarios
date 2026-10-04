@@ -1,0 +1,313 @@
+.cliente-box {
+  border: 1px solid rgba(13, 110, 253, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.9rem;
+  background: #f8fbff;
+}
+
+.cliente-buscador {
+  border: 1px solid #e0e8f5;
+  border-radius: 0.5rem;
+  background: #fbfdff;
+  padding: 0.9rem;
+}
+
+.lista-clientes {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.cliente-item {
+  width: 100%;
+  border: 1px solid #dbe4ef;
+  border-radius: 0.5rem;
+  background: #fff;
+  text-align: left;
+  padding: 0.75rem;
+}
+
+.cliente-item:hover {
+  background: #f7fbff;
+  border-color: #b9cbe6;
+}
+
+.cotizacion-meta {
+  border-top: 1px solid #e6edf8;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.lista-resultados {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+}
+
+.producto-item {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.producto-item:hover {
+  background: #f7faff;
+}
+
+.producto-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.producto-label {
+  font-size: 0.92rem;
+  color: #1d2733;
+}
+
+.producto-item:last-child {
+  border-bottom: 0;
+}
+
+.tabla-wrapper {
+  max-height: 460px;
+  overflow: auto;
+}
+
+.producto-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-editar-colores {
+  border: 0;
+  background: transparent;
+  color: #0d6efd;
+  font-size: 0.78rem;
+  padding: 0;
+  margin-top: 0.2rem;
+  text-decoration: underline;
+}
+
+.btn-editar-colores:hover {
+  color: #0a58ca;
+}
+
+.tecnica-row td {
+  background: #f7faff;
+  border-top-color: #eef3fb;
+}
+
+.tecnica-row td:first-child {
+  padding-left: 1.25rem;
+}
+
+.tecnica-cell {
+  gap: 0.75rem;
+}
+
+.tecnica-thumb {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+}
+
+.cantidad-display-tecnica {
+  min-height: 28px;
+  background: #fff;
+}
+
+.tecnica-row-actions {
+  flex-wrap: wrap;
+}
+
+.regla-negocio {
+  color: #0b6b35;
+  font-weight: 600;
+}
+
+.cantidad-display {
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dbe4ef;
+  border-radius: 0.375rem;
+  background: #f8fbff;
+  font-weight: 600;
+}
+
+.producto-thumb,
+.producto-thumb-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.4rem;
+  flex: 0 0 48px;
+}
+
+.producto-thumb {
+  object-fit: cover;
+  border: 1px solid #dbe4ef;
+}
+
+.producto-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #68707a;
+  border: 1px dashed #b9c2ce;
+  background: #f4f6f8;
+  text-align: center;
+  padding: 0.2rem;
+}
+
+.resumen-card {
+  border: 1px solid #dbe6ff;
+  background: #f8fbff;
+  border-radius: 0.5rem;
+  padding: 0.9rem;
+  position: sticky;
+  top: 0.75rem;
+}
+
+.modal-backdrop-cot {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 26, 35, 0.45);
+  z-index: 1050;
+}
+
+.modal-cantidad {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1051;
+}
+
+.modal-cantidad-card {
+  width: 100%;
+  max-width: 760px;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 14px 32px rgba(17, 24, 39, 0.2);
+  border: 1px solid #e8eef7;
+  padding: 1rem;
+}
+
+.modal-tecnicas {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1052;
+}
+
+.modal-tecnicas-card {
+  width: 100%;
+  max-width: 960px;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 14px 32px rgba(17, 24, 39, 0.2);
+  border: 1px solid #e8eef7;
+  padding: 1rem;
+}
+
+.modal-tecnicas-confirmacion-card {
+  max-width: 460px;
+}
+
+.tecnicas-lista {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tecnica-card {
+  border: 1px solid #e6edf8;
+  background: #fafcff;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+}
+
+.tecnica-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.tecnica-selectores {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.stock-colores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.stock-color-card {
+  border: 1px solid #e6edf8;
+  background: #fafcff;
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+}
+
+.stock-almacen-lista {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stock-almacen-item {
+  border: 1px dashed #d7dfeb;
+  border-radius: 0.5rem;
+  padding: 0.45rem;
+  background: #fff;
+}
+
+.stock-almacen-nombre {
+  color: #3a4654;
+}
+
+.stock-almacen-nombre :is(br) {
+  display: block;
+}
+
+@media (max-width: 992px) {
+  .resumen-card {
+    position: static;
+  }
+
+  .tecnica-card-header {
+    flex-direction: column;
+  }
+
+  .tecnica-selectores {
+    grid-template-columns: 1fr;
+  }
+}

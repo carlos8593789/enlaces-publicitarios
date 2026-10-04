@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, catchError, map, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface ClienteDetalle {
@@ -8,10 +8,47 @@ export interface ClienteDetalle {
   nombre: string;
   email: string;
   empresa: string;
+  distribuidor?: number;
+  telefono?: string;
+  celular?: string;
+  telefono_contacto?: string;
 }
 
 export interface ClienteResponse {
   data: ClienteDetalle;
+}
+
+export interface ClienteBusquedaItem {
+  id: number;
+  telefono: string;
+  email: string;
+  distribuidor: number;
+  porcentaje_descuento: number | null;
+  value: string;
+  label: string;
+}
+
+export interface ClienteBusquedaResponse {
+  success: boolean;
+  message: string;
+  data: ClienteBusquedaItem[];
+}
+
+export interface VendedorSugeridoItem {
+  id: number;
+  nombre: string;
+  correo: string;
+}
+
+export interface ClienteVendedorSugeridoData {
+  vendedor_sugerido: VendedorSugeridoItem | null;
+  esMismoVendedor: boolean;
+}
+
+export interface ClienteVendedorSugeridoResponse {
+  success: boolean;
+  message: string;
+  data: ClienteVendedorSugeridoData;
 }
 
 @Injectable({
@@ -19,6 +56,7 @@ export interface ClienteResponse {
 })
 export class ClienteService {
   private readonly apiUrl = `${environment.apiBaseUrl}/api/clientes`;
+  private readonly buscadorUrl = `${environment.apiBaseUrl}/api/clientes-buscar`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -28,5 +66,37 @@ export class ClienteService {
     }
 
     return this.http.get<ClienteResponse>(`${this.apiUrl}/${idCliente}`);
+  }
+
+  searchClientes(term: string): Observable<ClienteBusquedaItem[]> {
+    const normalizedTerm = term.trim();
+    if (!normalizedTerm) {
+      return of([]);
+    }
+
+    return this.http
+      .get<ClienteBusquedaResponse>(this.buscadorUrl, {
+        params: { term: normalizedTerm }
+      })
+      .pipe(
+        map((response) => (Array.isArray(response?.data) ? response.data : [])),
+        catchError(() => of([]))
+      );
+  }
+
+  getVendedorSugerido(idCliente: number): Observable<ClienteVendedorSugeridoResponse> {
+    if (!idCliente || Number.isNaN(idCliente)) {
+      return throwError(() => new Error('ID de cliente inválido.'));
+    }
+
+    return this.http.get<ClienteVendedorSugeridoResponse>(`${this.apiUrl}/${idCliente}/vendedor-sugerido`);
+  }
+
+  sendCorreoVendedorSugerido(idCliente: number): Observable<{ success: boolean; message: string }> {
+    if (!idCliente || Number.isNaN(idCliente)) {
+      return throwError(() => new Error('ID de cliente inválido.'));
+    }
+
+    return this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/${idCliente}/vendedor-sugerido/correo`, {});
   }
 }
