@@ -1,7 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import {
   ClienteBusquedaItem,
@@ -27,7 +28,15 @@ import {
   CondicionVentaItem,
   CondicionesVentaService
 } from '../../../services/condiciones-venta.service';
-import { CotizacionesService, CrearCotizacionPayload, CrearCotizacionResponse } from '../../../services/cotizaciones.service';
+import {
+  ActualizarCotizacionPayload,
+  CotizacionDetalle,
+  CotizacionesService,
+  CrearCotizacionPayload,
+  CrearCotizacionProductoPayload,
+  CrearCotizacionResponse
+} from '../../../services/cotizaciones.service';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   TecnicaImpresionPrecioResponse,
   TecnicasImpresionService
@@ -50,8 +59,14 @@ export class CrearCotizacionComponent implements OnInit {
   private readonly productosService = inject(CotizacionProductosService);
   private readonly cotizacionesService = inject(CotizacionesService);
   private readonly tecnicasImpresionService = inject(TecnicasImpresionService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly ivaRate = 0.16;
+
+  idCotizacionEdicion: number | null = null;
+  cargandoCotizacion = false;
+  cotizacionCargaError = '';
+  observaciones = '';
 
   clienteId: number | null = null;
   cliente: ClienteDetalle | null = null;
@@ -125,6 +140,25 @@ export class CrearCotizacionComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarCondicionesVenta();
+
+    this.route.paramMap.subscribe((params) => {
+      const idParam = params.get('id');
+      if (idParam === null) {
+        return;
+      }
+
+      const idCotizacion = Number(idParam);
+      if (!Number.isInteger(idCotizacion) || idCotizacion <= 0) {
+        this.cotizacionCargaError = 'El identificador de la cotizacion no es valido.';
+        return;
+      }
+
+      this.cargarCotizacionParaEdicion(idCotizacion);
+    });
+  }
+
+  get esEdicion(): boolean {
+    return this.idCotizacionEdicion !== null;
   }
 
   get clienteTelefono(): string {
@@ -185,6 +219,170 @@ export class CrearCotizacionComponent implements OnInit {
         this.buscandoClientes = false;
       }
     });
+  }
+
+  private cargarCotizacionParaEdicion(idCotizacion: number): void {
+    this.idCotizacionEdicion = idCotizacion;
+    this.cargandoCotizacion = true;
+    this.cotizacionCargaError = '';
+    this.crearCotizacionError = '';
+    this.crearCotizacionExito = '';
+    this.limpiarCotizacion();
+
+    this.cotizacionesService.getCotizacionById(idCotizacion).subscribe({
+      next: (response) => {
+        if (!response?.data) {
+          this.cotizacionCargaError = 'No se encontro la cotizacion solicitada.';
+          this.cargandoCotizacion = false;
+          return;
+        }
+
+        this.aplicarCotizacionDetalle(response.data);
+      },
+      error: () => {
+        this.cotizacionCargaError = 'No se pudo cargar la cotizacion. Intenta nuevamente.';
+        this.cargandoCotizacion = false;
+      }
+    });
+  }
+
+  private aplicarCotizacionDetalle(data: CotizacionDetalle): void {
+    this.clienteId = data.id_cliente;
+    this.cliente = {
+      id: data.cliente?.id ?? data.id_cliente,
+      nombre: data.cliente?.nombre ?? '',
+      email: data.cliente?.email ?? '',
+      empresa: data.cliente?.empresa ?? ''
+    };
+    this.vendedorSugerido = data.vendedor_sugerido ?? null;
+    this.alertaVendedorSugeridoAbierta = false;
+    this.observaciones = data.observaciones ?? '';
+    this.permitirPago = !!data.permitir_pago;
+    this.riesgos = data.riesgos ?? '';
+    this.condicionesVenta = data.condiciones_venta ?? '';
+
+    this.clienteService.getClienteById(data.id_cliente).pipe(catchError(() => of(null))).subscribe((response) => {
+      if (response?.data) {
+        this.cliente = { ...this.cliente, ...response.data };
+      }
+    });
+
+    const items = Array.isArray(data.productos) ? data.productos : [];
+    if (items.length === 0) {
+      this.cargandoCotizacion = false;
+      return;
+    }
+
+    const idsAlmacenes = Array.from(
+      new Set(
+        items
+          .map((item) => Number(item.producto?.id_almacen))
+          .filter((idAlmacen) => Number.isFinite(idAlmacen) && idAlmacen > 0)
+      )
+    );
+
+    const solicitudes = items.map((item) => {
+      const tecnicas = item.tecnicas_impresion ?? [];
+
+      return forkJoin({
+        precio: this.productosService.getProductoPrecio(item.id_producto, data.id_cliente, item.cantidad, idsAlmacenes),
+        catalogo:
+          tecnicas.length > 0 ? this.tecnicasImpresionService.getTecnicasImpresion(item.id_producto) : of(null),
+        preciosTecnicas:
+          tecnicas.length > 0
+            ? forkJoin(
+                tecnicas.map((tecnica) =>
+                  this.tecnicasImpresionService.getPrecioTecnicaImpresion(
+                    tecnica.idTecnica,
+                    tecnica.cantidad,
+                    tecnica.posiciones,
+                    tecnica.tintas
+                  )
+                )
+              )
+            : of([] as TecnicaImpresionPrecioResponse[])
+      });
+    });
+
+    forkJoin(solicitudes).subscribe({
+      next: (resultados) => {
+        this.lineasCotizacion = items.map((item, index) =>
+          this.construirLineaDesdeDetalle(item, resultados[index])
+        );
+        this.sincronizarIdsAlmacenCotizacion();
+        this.cargandoCotizacion = false;
+      },
+      error: () => {
+        this.cotizacionCargaError = 'No se pudieron calcular los precios de la cotizacion.';
+        this.cargandoCotizacion = false;
+      }
+    });
+  }
+
+  private construirLineaDesdeDetalle(
+    item: CotizacionDetalle['productos'][number],
+    resultado: {
+      precio: ProductoPrecioResponse;
+      catalogo: { data: TecnicaImpresionApiItem[] } | null;
+      preciosTecnicas: TecnicaImpresionPrecioResponse[];
+    }
+  ): CotizacionLinea {
+    const producto = item.producto;
+    const { precioUnitario, montoReglaNegocio } = this.normalizarPrecioProducto(resultado.precio);
+    const porcentajeProducto = Number(item.porcentaje_descuento) || 0;
+    const catalogo = new Map(
+      this.normalizarTecnicasImpresion(resultado.catalogo?.data).map((tecnica) => [tecnica.id_tecnica, tecnica] as const)
+    );
+
+    const tecnicasImpresion: TecnicaImpresionSeleccion[] = (item.tecnicas_impresion ?? []).map((tecnica, index) => {
+      const info = catalogo.get(Number(tecnica.idTecnica));
+      const precio = this.normalizarPrecioTecnicaImpresion(resultado.preciosTecnicas[index]);
+      const porcentaje = Number(tecnica.porcentaje_descuento) || 0;
+
+      return {
+        numero: info?.numero ?? '',
+        imagen: info?.imagen ?? '',
+        id_tecnica: Number(tecnica.idTecnica),
+        nombre: info?.nombre || `Tecnica #${tecnica.idTecnica}`,
+        cantidad_posiciones: info?.cantidad_posiciones ?? tecnica.posiciones,
+        cantidad_tintas: info?.cantidad_tintas ?? tecnica.tintas,
+        consideraciones: tecnica.consideraciones ?? info?.consideraciones ?? '',
+        descripcion: info?.descripcion ?? '',
+        seleccionada: true,
+        piezasSeleccionadas: tecnica.cantidad,
+        tintasSeleccionadas: tecnica.tintas,
+        posicionesSeleccionadas: tecnica.posiciones,
+        color: tecnica.color ?? '',
+        detalles: tecnica.detalles ?? '',
+        nota: tecnica.nota ?? '',
+        precioUnitarioBase: precio.precioUnitario,
+        precioUnitario: this.calcularPrecioConDescuento(precio.precioUnitario, porcentaje),
+        porcentajeDescuento: porcentaje,
+        notaDescuento: tecnica.nota_descuento ?? '',
+        cargoExtra: precio.cargoExtra
+      };
+    });
+
+    return {
+      id: item.id_producto,
+      clave: producto?.clave ?? '',
+      bbb: Number(producto?.bbb) || 0,
+      aplica_regla: Number(producto?.aplica_regla) || 0,
+      descripcioncorta: producto?.descripcioncorta ?? '',
+      value: producto?.value ?? '',
+      label: producto?.label ?? '',
+      imagen: this.normalizarImagenProducto(producto?.imagen ?? ''),
+      id_almacen: Number(producto?.id_almacen) || 0,
+      cantidad: item.cantidad,
+      descripcion: item.descripcion ?? '',
+      precioUnitarioBase: precioUnitario,
+      precioUnitario: this.calcularPrecioConDescuento(precioUnitario, porcentajeProducto),
+      porcentajeDescuento: porcentajeProducto,
+      notaDescuento: item.nota_descuento ?? '',
+      montoReglaNegocio,
+      coloresSeleccionados: (item.colores ?? []).map((color) => ({ color: color.color, cantidad: color.cantidad })),
+      tecnicasImpresion
+    };
   }
 
   private cargarCondicionesVenta(): void {
@@ -787,38 +985,75 @@ export class CrearCotizacionComponent implements OnInit {
       return;
     }
 
+    const coloresInvalidos = this.lineasCotizacion.some((linea) =>
+      (linea.coloresSeleccionados ?? []).some((item) => /[:,]/.test(item.color))
+    );
+    if (coloresInvalidos) {
+      this.crearCotizacionError = 'El nombre de un color no puede contener ":" ni ",".';
+      return;
+    }
+
+    const productos: CrearCotizacionProductoPayload[] = this.lineasCotizacion.map((linea) => ({
+      id_producto: linea.id,
+      colores: (linea.coloresSeleccionados ?? [])
+        .filter((item) => item.cantidad > 0)
+        .map((item) => ({ color: item.color.trim(), cantidad: item.cantidad })),
+      descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
+      porcentaje_descuento: linea.porcentajeDescuento ?? 0,
+      nota_descuento: linea.notaDescuento || '',
+      cantidad: linea.cantidad,
+      tecnicas_impresion: (linea.tecnicasImpresion ?? [])
+        .filter((tecnica) => Number(tecnica.id_tecnica) > 0 && Number(tecnica.piezasSeleccionadas) > 0)
+        .map((tecnica) => ({
+          idTecnica: Number(tecnica.id_tecnica),
+          color: (tecnica.color || '').trim(),
+          cantidad: Math.max(0, Math.floor(Number(tecnica.piezasSeleccionadas) || 0)),
+          tintas: Math.max(0, Math.floor(Number(tecnica.tintasSeleccionadas) || 0)),
+          posiciones: Math.max(0, Math.floor(Number(tecnica.posicionesSeleccionadas) || 0)),
+          detalles: (tecnica.detalles || '').trim(),
+          consideraciones: (tecnica.consideraciones || '').trim(),
+          nota: (tecnica.nota || '').trim(),
+          porcentaje_descuento: tecnica.porcentajeDescuento ?? 0,
+          nota_descuento: tecnica.notaDescuento || ''
+        }))
+    }));
+
+    this.creandoCotizacion = true;
+
+    if (this.idCotizacionEdicion !== null) {
+      const payloadActualizacion: ActualizarCotizacionPayload = {
+        id_cliente: this.clienteId,
+        observaciones: this.observaciones.trim(),
+        permitir_pago: this.permitirPago,
+        riesgos: this.riesgos.trim(),
+        condiciones_venta: this.condicionesVenta.trim(),
+        productos
+      };
+
+      this.cotizacionesService.updateCotizacion(this.idCotizacionEdicion, payloadActualizacion).subscribe({
+        next: (response) => {
+          this.crearCotizacionExito = `${response.message || 'Cotizacion actualizada correctamente.'} #${this.idCotizacionEdicion}`;
+          this.creandoCotizacion = false;
+        },
+        error: (error: HttpErrorResponse) => {
+          this.crearCotizacionError =
+            (typeof error?.error?.message === 'string' && error.error.message) ||
+            'No se pudo actualizar la cotizacion. Intenta nuevamente.';
+          this.creandoCotizacion = false;
+        }
+      });
+      return;
+    }
+
     const payload: CrearCotizacionPayload = {
       id_cliente: this.clienteId,
-      observaciones: '',
+      observaciones: this.observaciones.trim(),
       permitir_pago: this.permitirPago,
       riesgos: this.riesgos.trim(),
       condiciones_venta: this.condicionesVenta.trim(),
       id_vendedor_sugerido: this.vendedorSugerido?.id ?? this.clienteId,
-      productos: this.lineasCotizacion.map((linea) => ({
-        id_producto: linea.id,
-        producto_color_cantidad: this.formatearProductoColorCantidad(linea.coloresSeleccionados),
-        descripcion: (linea.descripcion || linea.descripcioncorta || linea.label || '').trim(),
-        porcentaje_descuento: linea.porcentajeDescuento ?? 0,
-        nota_descuento: linea.notaDescuento || '',
-        cantidad: linea.cantidad,
-        tecnicas_impresion: (linea.tecnicasImpresion ?? [])
-          .filter((tecnica) => Number(tecnica.id_tecnica) > 0 && Number(tecnica.piezasSeleccionadas) > 0)
-          .map((tecnica) => ({
-            idTecnica: Number(tecnica.id_tecnica),
-            color: (tecnica.color || '').trim(),
-            cantidad: Math.max(0, Math.floor(Number(tecnica.piezasSeleccionadas) || 0)),
-            tintas: Math.max(0, Math.floor(Number(tecnica.tintasSeleccionadas) || 0)),
-            posiciones: Math.max(0, Math.floor(Number(tecnica.posicionesSeleccionadas) || 0)),
-            detalles: (tecnica.detalles || '').trim(),
-            consideraciones: (tecnica.consideraciones || '').trim(),
-            nota: (tecnica.nota || '').trim(),
-            porcentaje_descuento: tecnica.porcentajeDescuento ?? 0,
-            nota_descuento: tecnica.notaDescuento || ''
-          }))
-      }))
+      productos
     };
-
-    this.creandoCotizacion = true;
 
     this.cotizacionesService.createCotizacion(payload).subscribe({
       next: (response: CrearCotizacionResponse) => {
@@ -1218,17 +1453,6 @@ export class CrearCotizacionComponent implements OnInit {
 
     const normalizedPath = clean.replace(/^\/+/, '').replace(/^small_/, '');
     return `${environment.apiEnlacesUrl}/images/tecnicas/small_${normalizedPath}`;
-  }
-
-  private formatearProductoColorCantidad(colores: CotizacionColorSeleccion[] | undefined): string {
-    if (!colores || colores.length === 0) {
-      return '';
-    }
-
-    return colores
-      .filter((item) => item.cantidad > 0)
-      .map((item) => `${item.color}:${item.cantidad}`)
-      .join(',');
   }
 
   private mezclarColoresSeleccionados(

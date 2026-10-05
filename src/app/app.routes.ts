@@ -22,6 +22,7 @@ export const routes: Routes = [
 			{ path: 'dashboard', component: DashboardComponent },
 			{ path: 'pizarra-remisiones', component: PizarraRemisionesComponent },
 			{ path: 'cotizaciones/crear', component: CrearCotizacionComponent },
+			{ path: 'cotizaciones/:id/editar', component: CrearCotizacionComponent },
 			{ path: '', pathMatch: 'full', redirectTo: 'pizarra-remisiones' }
 		]
 	},
