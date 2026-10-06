@@ -65,6 +65,8 @@ export class CrearCotizacionComponent implements OnInit {
 
   idCotizacionEdicion: number | null = null;
   cargandoCotizacion = false;
+  generandoPdf = false;
+  pdfError = '';
   cotizacionCargaError = '';
   observaciones = '';
 
@@ -1067,6 +1069,54 @@ export class CrearCotizacionComponent implements OnInit {
         this.creandoCotizacion = false;
       }
     });
+  }
+
+  verPdfCotizacion(): void {
+    if (this.idCotizacionEdicion === null || this.generandoPdf) {
+      return;
+    }
+
+    this.pdfError = '';
+    this.generandoPdf = true;
+
+    // Se abre antes de la peticion para que el navegador no bloquee la pestana.
+    const ventana = window.open('', '_blank');
+
+    this.cotizacionesService.getCotizacionPdf(this.idCotizacionEdicion).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        this.generandoPdf = false;
+
+        if (ventana) {
+          ventana.location.href = url;
+        } else {
+          const enlace = document.createElement('a');
+          enlace.href = url;
+          enlace.download = `${this.idCotizacionEdicion}.pdf`;
+          enlace.click();
+        }
+
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      },
+      error: async (error: HttpErrorResponse) => {
+        ventana?.close();
+        this.generandoPdf = false;
+        this.pdfError = await this.obtenerMensajeErrorPdf(error);
+      }
+    });
+  }
+
+  private async obtenerMensajeErrorPdf(error: HttpErrorResponse): Promise<string> {
+    const mensajeBase = 'No se pudo generar el PDF de la cotizacion.';
+
+    try {
+      const cuerpo = error.error;
+      const texto = cuerpo instanceof Blob ? await cuerpo.text() : '';
+      const mensaje = texto ? JSON.parse(texto)?.message : '';
+      return typeof mensaje === 'string' && mensaje ? mensaje : mensajeBase;
+    } catch {
+      return mensajeBase;
+    }
   }
 
   get subtotalProducto(): number {

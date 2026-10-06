@@ -156,6 +156,10 @@ export class CotizacionesService {
     return this.http.get<CotizacionDetalleResponse>(`${this.apiUrl}/${idCotizacion}`);
   }
 
+  getCotizacionPdf(idCotizacion: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${idCotizacion}/pdf`, { responseType: 'blob' });
+  }
+
   updateCotizacion(idCotizacion: number, payload: ActualizarCotizacionPayload): Observable<ActualizarCotizacionResponse> {
     return this.http.put<ActualizarCotizacionResponse>(`${this.apiUrl}/${idCotizacion}`, payload);
   }

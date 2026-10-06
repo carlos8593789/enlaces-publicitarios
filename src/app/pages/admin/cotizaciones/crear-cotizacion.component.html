@@ -418,6 +418,17 @@
               }}
             </button>
 
+            <button
+              *ngIf="esEdicion"
+              type="button"
+              class="btn btn-outline-secondary w-100 mt-2"
+              (click)="verPdfCotizacion()"
+              [disabled]="generandoPdf || cargandoCotizacion"
+            >
+              {{ generandoPdf ? 'Generando PDF...' : 'Ver PDF' }}
+            </button>
+            <p *ngIf="pdfError" class="text-danger small mt-2 mb-0">{{ pdfError }}</p>
+
             <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
             <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">{{ crearCotizacionExito }}</p>
           </div>
