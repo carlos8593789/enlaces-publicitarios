@@ -2,16 +2,31 @@
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h2 class="h5 mb-0">{{ esEdicion ? 'Editar cotizacion #' + idCotizacionEdicion : 'Crear cotizacion' }}</h2>
-        <span class="badge text-bg-light border">IVA {{ ivaRate * 100 }}%</span>
+        <h2 class="h5 mb-0">
+          {{ esEdicion ? 'Editar cotizacion #' + idCotizacionEdicion : (esCopia ? 'Crear cotizacion basada en #' + idCotizacionOrigen : 'Crear cotizacion') }}
+        </h2>
+        <div class="d-flex align-items-center gap-2">
+          <button
+            *ngIf="esEdicion"
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            (click)="crearCopiaDeCotizacion()"
+          >
+            Crear copia
+          </button>
+          <span class="badge text-bg-light border">IVA {{ ivaRate * 100 }}%</span>
+        </div>
       </div>
 
       <div *ngIf="cargandoCotizacion" class="text-muted small mb-2">Cargando cotizacion...</div>
       <p *ngIf="cotizacionCargaError" class="text-danger small mb-2">{{ cotizacionCargaError }}</p>
+      <p *ngIf="esCopia" class="text-muted small mb-2">
+        Copia de la cotizacion #{{ idCotizacionOrigen }}. Puedes modificar sus datos y agregar o quitar productos; la original no se modificara.
+      </p>
 
-      <p *ngIf="!esEdicion" class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
+      <p *ngIf="!esEdicion && !esCopia" class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
 
-      <div class="cliente-buscador mt-3" *ngIf="!esEdicion">
+      <div class="cliente-buscador mt-3" *ngIf="!esEdicion && !esCopia">
         <label class="form-label small">Buscar cliente</label>
         <div class="input-group mb-2">
           <input
@@ -120,11 +135,6 @@
               placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
             ></textarea>
             <div *ngIf="!condicionesVenta.trim()" class="text-danger small mt-1">Las condiciones de venta son obligatorias.</div>
-          </div>
-
-          <div class="col-12">
-            <label class="form-label small">Observaciones</label>
-            <textarea class="form-control" rows="2" [(ngModel)]="observaciones"></textarea>
           </div>
 
           <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
@@ -414,12 +424,21 @@
               {{
                 creandoCotizacion
                   ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
-                  : (esEdicion ? 'Guardar cambios' : 'Crear cotizacion')
+                  : (esEdicion ? 'Guardar cambios' : (esCopia ? 'Crear cotización desde carrito' : 'Crear cotizacion'))
               }}
             </button>
 
             <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
-            <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">{{ crearCotizacionExito }}</p>
+            <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">
+              {{ crearCotizacionExito }}
+              <a
+                *ngIf="idCotizacionCreada !== null"
+                target="_blank" rel="noopener noreferrer"
+                [href]="getUrlDetalleCotizacion(idCotizacionCreada)"
+              >
+                #{{ idCotizacionCreada }}
+              </a>
+            </p>
           </div>
         </div>
       </div>

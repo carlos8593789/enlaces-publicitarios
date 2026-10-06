@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 
 import {
@@ -60,10 +60,12 @@ export class CrearCotizacionComponent implements OnInit {
   private readonly cotizacionesService = inject(CotizacionesService);
   private readonly tecnicasImpresionService = inject(TecnicasImpresionService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly ivaRate = 0.16;
 
   idCotizacionEdicion: number | null = null;
+  idCotizacionOrigen: number | null = null;
   cargandoCotizacion = false;
   cotizacionCargaError = '';
   observaciones = '';
@@ -125,6 +127,7 @@ export class CrearCotizacionComponent implements OnInit {
   creandoCotizacion = false;
   crearCotizacionError = '';
   crearCotizacionExito = '';
+  idCotizacionCreada: number | null = null;
   modalDescuentoAbierto = false;
   descuentoAlcance: 'productos' | 'tecnicas' | 'todo' = 'todo';
   descuentoPorcentaje = 0;
@@ -155,10 +158,33 @@ export class CrearCotizacionComponent implements OnInit {
 
       this.cargarCotizacionParaEdicion(idCotizacion);
     });
+
+    this.route.queryParamMap.subscribe((params) => {
+      const idParam = params.get('copiar');
+      if (idParam === null) {
+        return;
+      }
+
+      const idCotizacion = Number(idParam);
+      if (!Number.isInteger(idCotizacion) || idCotizacion <= 0) {
+        this.cotizacionCargaError = 'El identificador de la cotizacion a copiar no es valido.';
+        return;
+      }
+
+      this.cargarCotizacionParaCopia(idCotizacion);
+    });
   }
 
   get esEdicion(): boolean {
     return this.idCotizacionEdicion !== null;
+  }
+
+  get esCopia(): boolean {
+    return this.idCotizacionOrigen !== null && !this.esEdicion;
+  }
+
+  getUrlDetalleCotizacion(idCotizacion: number): string {
+    return `${environment.apiEnlacesUrl.replace(/\/+$/, '')}/cotizaciones/detalles/${idCotizacion}`;
   }
 
   get clienteTelefono(): string {
@@ -223,6 +249,17 @@ export class CrearCotizacionComponent implements OnInit {
 
   private cargarCotizacionParaEdicion(idCotizacion: number): void {
     this.idCotizacionEdicion = idCotizacion;
+    this.idCotizacionOrigen = null;
+    this.cargarDetalleCotizacion(idCotizacion);
+  }
+
+  private cargarCotizacionParaCopia(idCotizacion: number): void {
+    this.idCotizacionEdicion = null;
+    this.idCotizacionOrigen = idCotizacion;
+    this.cargarDetalleCotizacion(idCotizacion);
+  }
+
+  private cargarDetalleCotizacion(idCotizacion: number): void {
     this.cargandoCotizacion = true;
     this.cotizacionCargaError = '';
     this.crearCotizacionError = '';
@@ -243,6 +280,16 @@ export class CrearCotizacionComponent implements OnInit {
         this.cotizacionCargaError = 'No se pudo cargar la cotizacion. Intenta nuevamente.';
         this.cargandoCotizacion = false;
       }
+    });
+  }
+
+  crearCopiaDeCotizacion(): void {
+    if (this.idCotizacionEdicion === null) {
+      return;
+    }
+
+    void this.router.navigate(['/admin/cotizaciones/crear'], {
+      queryParams: { copiar: this.idCotizacionEdicion }
     });
   }
 
@@ -805,7 +852,7 @@ export class CrearCotizacionComponent implements OnInit {
     item.seleccionada = seleccionada;
 
     if (seleccionada) {
-      item.piezasSeleccionadas = 0;
+      item.piezasSeleccionadas = this.obtenerMaximoPiezasTecnica(item);
       item.tintasSeleccionadas = item.cantidad_tintas > 0 ? Math.max(1, item.tintasSeleccionadas || 1) : 0;
       item.posicionesSeleccionadas = item.cantidad_posiciones > 0 ? Math.max(1, item.posicionesSeleccionadas || 1) : 0;
       return;
@@ -964,6 +1011,7 @@ export class CrearCotizacionComponent implements OnInit {
   crearCotizacion(): void {
     this.crearCotizacionError = '';
     this.crearCotizacionExito = '';
+    this.idCotizacionCreada = null;
 
     if (this.clienteId === null) {
       this.crearCotizacionError = 'No se encontro un cliente valido para crear la cotizacion.';
@@ -1047,6 +1095,7 @@ export class CrearCotizacionComponent implements OnInit {
 
     const payload: CrearCotizacionPayload = {
       id_cliente: this.clienteId,
+      ...(this.idCotizacionOrigen !== null ? { id_padre: this.idCotizacionOrigen } : {}),
       observaciones: this.observaciones.trim(),
       permitir_pago: this.permitirPago,
       riesgos: this.riesgos.trim(),
@@ -1057,7 +1106,8 @@ export class CrearCotizacionComponent implements OnInit {
 
     this.cotizacionesService.createCotizacion(payload).subscribe({
       next: (response: CrearCotizacionResponse) => {
-        this.crearCotizacionExito = `${response.message} #${response.data.id_cotizacion}`;
+        this.crearCotizacionExito = response.message || 'Cotizacion creada correctamente.';
+        this.idCotizacionCreada = response.data.id_cotizacion;
         this.lineasCotizacion = [];
         this.idsAlmacenCotizacion = [];
         this.creandoCotizacion = false;

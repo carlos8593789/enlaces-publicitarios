@@ -34,6 +34,7 @@ export interface CrearCotizacionTecnicaPayload {
 
 export interface CrearCotizacionPayload {
   id_cliente: number;
+  id_padre?: number;
   observaciones: string;
   permitir_pago: boolean;
   riesgos: string;
