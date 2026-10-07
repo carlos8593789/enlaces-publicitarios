@@ -2,38 +2,30 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './auth/auth.guard';
 import { roleGuard } from './auth/role.guard';
-import { LoginComponent } from './auth/login.component';
-import { AdminLayoutComponent } from './layouts/admin/admin-layout.component';
-import { ClientLayoutComponent } from './layouts/qr/client-layout.component';
-import { ClienteHomeComponent } from './pages/qr/leer/cliente-home.component';
-import { ClienteQrProcesarComponent } from './pages/qr/entregar/cliente-qr-procesar.component';
-import { DashboardComponent } from './pages/admin/dashboard.component';
-import { PizarraRemisionesComponent } from './pages/admin/pizarra-remisiones/pizarra-remisiones.component';
-import { CrearCotizacionComponent } from './pages/admin/cotizaciones/crear-cotizacion.component';
 
 export const routes: Routes = [
-	{ path: 'login', component: LoginComponent },
+	{ path: 'login', loadComponent: () => import('./auth/login.component').then((m) => m.LoginComponent) },
 	{
 		path: 'admin',
-		component: AdminLayoutComponent,
+		loadComponent: () => import('./layouts/admin/admin-layout.component').then((m) => m.AdminLayoutComponent),
 		canActivate: [authGuard, roleGuard],
 		data: { role: 'admin' },
 		children: [
-			{ path: 'dashboard', component: DashboardComponent },
-			{ path: 'pizarra-remisiones', component: PizarraRemisionesComponent },
-			{ path: 'cotizaciones/crear', component: CrearCotizacionComponent },
-			{ path: 'cotizaciones/:id/editar', component: CrearCotizacionComponent },
+			{ path: 'dashboard', loadComponent: () => import('./pages/admin/dashboard.component').then((m) => m.DashboardComponent) },
+			{ path: 'pizarra-remisiones', loadComponent: () => import('./pages/admin/pizarra-remisiones/pizarra-remisiones.component').then((m) => m.PizarraRemisionesComponent) },
+			{ path: 'cotizaciones/crear', loadComponent: () => import('./pages/admin/cotizaciones/crear-cotizacion.component').then((m) => m.CrearCotizacionComponent) },
+			{ path: 'cotizaciones/:id/editar', loadComponent: () => import('./pages/admin/cotizaciones/crear-cotizacion.component').then((m) => m.CrearCotizacionComponent) },
 			{ path: '', pathMatch: 'full', redirectTo: 'pizarra-remisiones' }
 		]
 	},
 	{
 		path: 'qr',
-		component: ClientLayoutComponent,
+		loadComponent: () => import('./layouts/qr/client-layout.component').then((m) => m.ClientLayoutComponent),
 		canActivate: [authGuard, roleGuard],
 		data: { role: 'admin' },
 		children: [
-			{ path: 'leer', component: ClienteHomeComponent },
-			{ path: 'entregar', component: ClienteQrProcesarComponent },
+			{ path: 'leer', loadComponent: () => import('./pages/qr/leer/cliente-home.component').then((m) => m.ClienteHomeComponent) },
+			{ path: 'entregar', loadComponent: () => import('./pages/qr/entregar/cliente-qr-procesar.component').then((m) => m.ClienteQrProcesarComponent) },
 			{ path: '', pathMatch: 'full', redirectTo: 'leer' }
 		]
 	},

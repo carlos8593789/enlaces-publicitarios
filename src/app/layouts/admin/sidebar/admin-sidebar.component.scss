@@ -1,7 +1,7 @@
 .sidebar {
   width: 240px;
   transition: width 0.2s ease-in-out;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .sidebar.collapsed {
