@@ -10,6 +10,7 @@ export interface TecnicaImpresionApiItem {
 }
 
 export interface TecnicaImpresionSeleccion extends TecnicaImpresionApiItem {
+  instanciaId?: number;
   seleccionada: boolean;
   piezasSeleccionadas: number;
   tintasSeleccionadas: number;

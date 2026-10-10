@@ -1,4 +1,8 @@
-<section class="container-fluid py-3">
+<section
+  class="container-fluid py-3"
+  [attr.inert]="creandoCotizacion ? '' : null"
+  [attr.aria-busy]="creandoCotizacion ? 'true' : null"
+>
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -391,7 +395,7 @@
                         <button
                           type="button"
                           class="btn btn-sm btn-outline-danger"
-                          (click)="eliminarTecnica(linea, tecnica.id_tecnica)"
+                          (click)="eliminarTecnica(linea, tecnica)"
                         >
                           Quitar
                         </button>
@@ -419,12 +423,12 @@
               type="button"
               class="btn btn-success w-100 mt-3"
               (click)="crearCotizacion()"
-              [disabled]="creandoCotizacion || cargandoCotizacion || lineasCotizacion.length === 0 || clienteId === null"
+              [disabled]="creandoCotizacion || cargandoCotizacion || lineasCotizacion.length === 0 || clienteId === null || (esEdicion && !hayCambiosCotizacion)"
             >
               {{
                 creandoCotizacion
                   ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
-                  : (esEdicion ? 'Guardar cambios' : (esCopia ? 'Crear cotización desde carrito' : 'Crear cotizacion'))
+                  : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización desde carrito' : 'Crear cotizacion'))
               }}
             </button>
 
@@ -433,7 +437,6 @@
               {{ crearCotizacionExito }}
               <a
                 *ngIf="idCotizacionCreada !== null"
-                target="_blank" rel="noopener noreferrer"
                 [href]="getUrlDetalleCotizacion(idCotizacionCreada)"
               >
                 #{{ idCotizacionCreada }}
@@ -607,18 +610,41 @@
             <div>
               <div class="fw-semibold">{{ tecnica.nombre }}</div>
               <div class="small text-muted">Tecnica #{{ tecnica.numero }}</div>
+              <div class="small text-primary" *ngIf="obtenerCantidadInstanciasTecnica(tecnica.id_tecnica) > 1">
+                Instancia {{ obtenerNumeroInstanciaTecnica(tecnica) }}
+              </div>
             </div>
           </div>
 
-          <div class="form-check form-switch mb-0">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              [id]="'tecnica-' + tecnica.id_tecnica"
-              [(ngModel)]="tecnica.seleccionada"
-              (ngModelChange)="alternarTecnicaImpresion(tecnica, $event)"
-            />
-            <label class="form-check-label small" [for]="'tecnica-' + tecnica.id_tecnica">Usar tecnica</label>
+          <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+            <button
+              *ngIf="tecnica.seleccionada"
+              type="button"
+              class="btn btn-sm btn-outline-primary"
+              (click)="agregarOtraTecnicaImpresion(tecnica)"
+              [disabled]="obtenerPiezasSinAsignarATecnicas() <= 0"
+            >
+              Agregar otra igual
+            </button>
+            <button
+              *ngIf="obtenerCantidadInstanciasTecnica(tecnica.id_tecnica) > 1"
+              type="button"
+              class="btn btn-sm btn-outline-danger"
+              (click)="eliminarInstanciaTecnica(tecnica)"
+              aria-label="Quitar esta instancia"
+            >
+              Quitar instancia
+            </button>
+            <div class="form-check form-switch mb-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [id]="'tecnica-' + (tecnica.instanciaId ?? tecnica.id_tecnica)"
+                [(ngModel)]="tecnica.seleccionada"
+                (ngModelChange)="alternarTecnicaImpresion(tecnica, $event)"
+              />
+              <label class="form-check-label small" [for]="'tecnica-' + (tecnica.instanciaId ?? tecnica.id_tecnica)">Usar tecnica</label>
+            </div>
           </div>
         </div>
 
@@ -779,17 +805,19 @@
           </div>
         </div>
 
-        <label class="form-label small mb-1">
-          {{ lineaEditando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
-        </label>
-        <input
-          type="number"
-          class="form-control form-control-sm"
-          min="0"
-          [max]="colorItem.total"
-          [ngModel]="colorItem.cantidadSeleccionada"
-          (ngModelChange)="actualizarCantidadColor(colorItem, $event)"
-        />
+        <div class="mt-3 p-2 border border-2 border-primary rounded bg-primary-subtle">
+          <label class="form-label fw-bold text-primary">
+            {{ lineaEditando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
+          </label>
+          <input
+            type="number"
+            class="form-control form-control-lg fw-bold text-center border-primary border-2"
+            min="0"
+            [max]="colorItem.total"
+            [ngModel]="colorItem.cantidadSeleccionada"
+            (ngModelChange)="actualizarCantidadColor(colorItem, $event)"
+          />
+        </div>
       </div>
     </div>
 
@@ -814,5 +842,18 @@
         {{ calculandoPrecioProducto ? 'Calculando...' : (lineaEditando ? 'Actualizar' : 'Agregar') }}
       </button>
     </div>
+  </div>
+</div>
+
+<div
+  *ngIf="creandoCotizacion"
+  class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center"
+  style="z-index: 2000; cursor: wait;"
+  role="status"
+  aria-live="polite"
+>
+  <div class="bg-white rounded shadow d-flex align-items-center gap-3 p-3 fw-semibold">
+    <span class="spinner-border text-primary" aria-hidden="true"></span>
+    <span>{{ esEdicion ? 'Actualizando cotizacion...' : 'Guardando cotizacion...' }}</span>
   </div>
 </div>
