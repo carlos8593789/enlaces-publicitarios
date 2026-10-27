@@ -202,6 +202,10 @@ export class CrearCotizacionComponent implements OnInit {
     return `${environment.apiEnlacesUrl.replace(/\/+$/, '')}/cotizaciones/detalles/${idCotizacion}`;
   }
 
+  getUrlModuloCotizacion(): string {
+    return `${environment.apiEnlacesUrl.replace(/\/+$/, '')}/cotizaciones`;
+  }
+
   get clienteTelefono(): string {
     if (!this.cliente) {
       return 'Sin telefono';
@@ -874,7 +878,9 @@ export class CrearCotizacionComponent implements OnInit {
     item.seleccionada = seleccionada;
 
     if (seleccionada) {
-      item.piezasSeleccionadas = this.obtenerMaximoPiezasTecnica(item);
+      const piezasRestantes = this.obtenerPiezasSinAsignarATecnicas();
+      item.piezasSeleccionadas =
+        piezasRestantes > 0 ? piezasRestantes : (this.productoPendienteAgregar?.cantidad ?? 1);
       item.tintasSeleccionadas = item.cantidad_tintas > 0 ? Math.max(1, item.tintasSeleccionadas || 1) : 0;
       item.posicionesSeleccionadas = item.cantidad_posiciones > 0 ? Math.max(1, item.posicionesSeleccionadas || 1) : 0;
       return;
@@ -888,16 +894,21 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   agregarOtraTecnicaImpresion(item: TecnicaImpresionSeleccion): void {
-    const piezasDisponibles = this.obtenerPiezasSinAsignarATecnicas();
-    if (!item.seleccionada || piezasDisponibles <= 0) {
+    if (!item.seleccionada) {
       return;
     }
+
+    const piezasDisponibles = this.obtenerPiezasSinAsignarATecnicas();
+    const piezasIniciales =
+      piezasDisponibles > 0
+        ? piezasDisponibles
+        : (item.piezasSeleccionadas > 0 ? item.piezasSeleccionadas : (this.productoPendienteAgregar?.cantidad ?? 1));
 
     const nuevaInstancia: TecnicaImpresionSeleccion = {
       ...item,
       instanciaId: this.generarIdInstanciaTecnica(),
       seleccionada: true,
-      piezasSeleccionadas: piezasDisponibles,
+      piezasSeleccionadas: piezasIniciales,
       tintasSeleccionadas: item.cantidad_tintas > 0 ? 1 : 0,
       posicionesSeleccionadas: item.cantidad_posiciones > 0 ? 1 : 0,
       color: '',
@@ -919,10 +930,8 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   actualizarPiezasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
-    const maximo = this.obtenerMaximoPiezasTecnica(item);
     const cantidadNumerica = Number(cantidad);
-    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
-    item.piezasSeleccionadas = Math.min(cantidadValida, maximo);
+    item.piezasSeleccionadas = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
   }
 
   actualizarTintasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
@@ -969,11 +978,6 @@ export class CrearCotizacionComponent implements OnInit {
 
     if (piezasTecnicas <= 0) {
       this.tecnicasImpresionError = 'Captura la cantidad de piezas para al menos una tecnica de impresion.';
-      return;
-    }
-
-    if (piezasTecnicas > pendiente.cantidad) {
-      this.tecnicasImpresionError = 'La cantidad de piezas con tecnica no puede superar el total del producto.';
       return;
     }
 
@@ -1128,7 +1132,7 @@ export class CrearCotizacionComponent implements OnInit {
 
       this.cotizacionesService.updateCotizacion(this.idCotizacionEdicion, payloadActualizacion).subscribe({
         next: (response) => {
-          this.crearCotizacionExito = `${response.message || 'Cotizacion actualizada correctamente.'} #${this.idCotizacionEdicion}`;
+          this.crearCotizacionExito = `${response.message || 'Cotizacion actualizada correctamente.'}`;
           this.idCotizacionCreada = this.idCotizacionEdicion;
           this.firmaInicialCotizacionEdicion = firmaActualizacion;
           this.creandoCotizacion = false;

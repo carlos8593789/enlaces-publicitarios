@@ -428,7 +428,7 @@
               {{
                 creandoCotizacion
                   ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
-                  : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización desde carrito' : 'Crear cotizacion'))
+                  : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización' : 'Crear cotización'))
               }}
             </button>
 
@@ -440,6 +440,13 @@
                 [href]="getUrlDetalleCotizacion(idCotizacionCreada)"
               >
                 #{{ idCotizacionCreada }}
+              </a>
+              Ir al 
+              <a
+                *ngIf="idCotizacionCreada !== null"
+                [href]="getUrlModuloCotizacion()"
+              >
+              módulo de cotizaciones
               </a>
             </p>
           </div>
@@ -593,8 +600,6 @@
     <div class="small text-muted mb-3" *ngIf="productoPendienteAgregar as productoPendiente">
       Piezas asignadas a tecnicas:
       <strong>{{ getPiezasTecnicasExistentes() + obtenerTotalPiezasTecnicasSeleccionadas() }}</strong>
-      /
-      <strong>{{ productoPendiente.cantidad }}</strong>
     </div>
 
     <div class="tecnicas-lista" *ngIf="!cargandoTecnicasImpresion && tecnicasImpresionCatalogo.length > 0">
@@ -622,7 +627,6 @@
               type="button"
               class="btn btn-sm btn-outline-primary"
               (click)="agregarOtraTecnicaImpresion(tecnica)"
-              [disabled]="obtenerPiezasSinAsignarATecnicas() <= 0"
             >
               Agregar otra igual
             </button>
@@ -654,7 +658,6 @@
             type="number"
             class="form-control form-control-sm"
             min="0"
-            [max]="obtenerMaximoPiezasTecnica(tecnica)"
             [disabled]="!tecnica.seleccionada"
             [ngModel]="tecnica.piezasSeleccionadas"
             (ngModelChange)="actualizarPiezasTecnica(tecnica, $event)"
@@ -720,10 +723,6 @@
             [(ngModel)]="tecnica.nota"
             placeholder="Agrega una nota"
           ></textarea>
-
-          <div class="small text-muted tecnica-piezas-restantes">
-            Máximo disponible: {{ obtenerMaximoPiezasTecnica(tecnica) }} pieza(s)
-          </div>
         </div>
       </div>
     </div>
