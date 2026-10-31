@@ -55,20 +55,10 @@ import {
   aplicarDescuentoTecnica,
   calcularPrecioConDescuento,
   obtenerPrecioBase,
-  getImporteLinea,
-  getTotalTecnica,
-  getTotalTecnicasPorLinea,
   mezclarColoresSeleccionados,
-  obtenerOpcionesCantidad,
   totalPiezasTecnicas
 } from './utils/cotizacion-calculos';
-import {
-  formatearColoresSeleccionados,
-  formatearColoresSeleccionadosCompacto,
-  formatearResumenTecnicasImpresion,
-  formatearTecnicasImpresion,
-  getResumenColoresSeleccionados
-} from './utils/cotizacion-formato';
+import { formatearResumenTecnicasImpresion } from './utils/cotizacion-formato';
 import {
   normalizarImagenProducto,
   normalizarPrecioProducto,
@@ -77,7 +67,10 @@ import {
   normalizarStockProducto,
   normalizarTecnicasImpresion
 } from './utils/cotizacion-normalizadores';
+import { ClienteSectionComponent } from './sections/cliente-section.component';
 import { CotizacionResumenComponent } from './sections/cotizacion-resumen.component';
+import { DatosCotizacionComponent } from './sections/datos-cotizacion.component';
+import { LineasTablaComponent } from './sections/lineas-tabla.component';
 import { ProductosBuscadorComponent } from './sections/productos-buscador.component';
 
 @Component({
@@ -88,15 +81,17 @@ import { ProductosBuscadorComponent } from './sections/productos-buscador.compon
     FormsModule,
     CantidadProductoModalComponent,
     ConfirmarTecnicasModalComponent,
+    ClienteSectionComponent,
     CotizacionResumenComponent,
+    DatosCotizacionComponent,
     DescuentoModalComponent,
+    LineasTablaComponent,
     ProductosBuscadorComponent,
     TecnicasImpresionModalComponent,
     VendedorSugeridoModalComponent
   ],
   providers: [CotizacionLineasStore],
-  templateUrl: './crear-cotizacion.component.html',
-  styleUrl: './crear-cotizacion.component.scss'
+  templateUrl: './crear-cotizacion.component.html'
 })
 export class CrearCotizacionComponent implements OnInit {
   private readonly clienteService = inject(ClienteService);
@@ -1085,10 +1080,6 @@ export class CrearCotizacionComponent implements OnInit {
     });
   }
 
-  actualizarCantidadDesdeModal(linea: CotizacionLinea): void {
-    this.abrirModalEditarCantidad(linea);
-  }
-
   eliminarProducto(idProducto: number): void {
     this.store.eliminar(idProducto);
   }
@@ -1275,28 +1266,6 @@ export class CrearCotizacionComponent implements OnInit {
     return this.coloresStockProducto.reduce((acc, item) => acc + item.cantidadSeleccionada, 0);
   }
 
-  trackByProducto(_index: number, item: CotizacionProducto): number {
-    return item.id;
-  }
-
-  trackByLinea(_index: number, item: CotizacionLinea): number {
-    return item.id;
-  }
-
-  trackByColor(_index: number, item: StockColorItem): string {
-    return item.color;
-  }
-
-  // Delegados a utils/ para uso directo desde las plantillas.
-  readonly formatearColoresSeleccionados = formatearColoresSeleccionados;
-  readonly formatearColoresSeleccionadosCompacto = formatearColoresSeleccionadosCompacto;
-  readonly getResumenColoresSeleccionados = getResumenColoresSeleccionados;
-  readonly formatearTecnicasImpresion = formatearTecnicasImpresion;
-  readonly getTotalTecnicasPorLinea = getTotalTecnicasPorLinea;
-  readonly getTotalTecnica = getTotalTecnica;
-  readonly getImporteLinea = getImporteLinea;
-  readonly obtenerOpcionesCantidad = obtenerOpcionesCantidad;
-
   obtenerTotalPiezasTecnicasSeleccionadas(tecnicas: TecnicaImpresionSeleccion[] | undefined = this.tecnicasImpresionCatalogo): number {
     return totalPiezasTecnicas(tecnicas);
   }
@@ -1328,20 +1297,6 @@ export class CrearCotizacionComponent implements OnInit {
       (acc, tecnica) => acc + Math.max(0, Number(tecnica.piezasSeleccionadas ?? 0)),
       0
     );
-  }
-
-  trackByTecnicaImpresion(index: number, item: TecnicaImpresionSeleccion): number {
-    return item.instanciaId ?? index;
-  }
-
-  obtenerCantidadInstanciasTecnica(idTecnica: number): number {
-    return this.tecnicasImpresionCatalogo.filter((item) => item.id_tecnica === idTecnica).length;
-  }
-
-  obtenerNumeroInstanciaTecnica(item: TecnicaImpresionSeleccion): number {
-    return this.tecnicasImpresionCatalogo
-      .slice(0, this.tecnicasImpresionCatalogo.indexOf(item) + 1)
-      .filter((tecnica) => tecnica.id_tecnica === item.id_tecnica).length;
   }
 
   private getDescripcionAlcanceDescuento(): string {

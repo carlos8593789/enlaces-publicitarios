@@ -1,0 +1,55 @@
+<div class="cotizacion-meta mt-3">
+  <h3 class="h6 mb-3">Datos de la cotizacion</h3>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <label class="form-label small">Riesgos</label>
+      <textarea
+        required
+        class="form-control"
+        rows="2"
+        [ngModel]="riesgos"
+        (ngModelChange)="riesgosChange.emit($event)"
+        placeholder="Ej. Sujeto a disponibilidad de inventario"
+      ></textarea>
+      <div *ngIf="!riesgos.trim()" class="text-danger small mt-1">Los riesgos son obligatorios.</div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <label class="form-label small">Condiciones de venta</label>
+      <select
+        class="form-select mb-2"
+        [ngModel]="idCondicionSeleccionada"
+        (ngModelChange)="seleccionarCondicion($event)"
+      >
+        <option value="">Selecciona una condicion de venta</option>
+        <option *ngFor="let condicion of catalogo" [value]="condicion.id">
+          {{ condicion.nombre }}
+        </option>
+      </select>
+      <div *ngIf="cargandoCondiciones" class="text-muted small mb-2">Cargando condiciones de venta...</div>
+      <p *ngIf="condicionesError" class="text-danger small mb-2">{{ condicionesError }}</p>
+      <textarea
+        required
+        class="form-control"
+        rows="3"
+        [ngModel]="condicionesVenta"
+        (ngModelChange)="condicionesVentaChange.emit($event)"
+        placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
+      ></textarea>
+      <div *ngIf="!condicionesVenta.trim()" class="text-danger small mt-1">Las condiciones de venta son obligatorias.</div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
+      <div class="form-check form-switch">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="permitirPago"
+          [ngModel]="permitirPago"
+          (ngModelChange)="permitirPagoChange.emit($event)"
+        />
+        <label class="form-check-label" for="permitirPago">Permitir pago</label>
+      </div>
+    </div>
+  </div>
+</div>

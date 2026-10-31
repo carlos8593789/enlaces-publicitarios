@@ -1,0 +1,181 @@
+<p *ngIf="lineas.length === 0" class="text-muted small mb-0">
+  Aun no agregas productos a la cotizacion.
+</p>
+
+<div class="tabla-wrapper" *ngIf="lineas.length > 0">
+  <table class="table table-sm align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th class="text-end">Precio</th>
+        <th style="width: 120px">Cantidad</th>
+        <th class="text-end">Importe</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let linea of lineas; trackBy: trackByLinea">
+        <tr>
+          <td>
+            <div class="producto-cell">
+              <ng-container *ngIf="linea.imagen; else sinImagenProducto">
+                <img [src]="linea.imagen" [alt]="linea.value" class="producto-thumb" />
+              </ng-container>
+              <ng-template #sinImagenProducto>
+                <div class="producto-thumb-placeholder">Sin imagen</div>
+              </ng-template>
+              <div>
+                <div class="fw-semibold">{{ linea.value }}</div>
+                <div class="small text-muted">{{ linea.label }}</div>
+                <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
+                  Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+                </div>
+                <div
+                  class="small text-secondary"
+                  *ngIf="linea.coloresSeleccionados?.length"
+                  [title]="formatearColoresSeleccionados(linea.coloresSeleccionados)"
+                >
+                  Colores: {{ formatearColoresSeleccionadosCompacto(linea.coloresSeleccionados) }}
+                </div>
+                <div class="small text-muted">
+                  {{ getResumenColoresSeleccionados(linea.coloresSeleccionados) }}
+                </div>
+                <div class="small regla-negocio" *ngIf="linea.montoReglaNegocio > 0">
+                  Producto con cuota para vender desde 1 pza: {{ linea.montoReglaNegocio | currency: 'MXN' }}
+                </div>
+                <button type="button" class="btn-editar-colores ms-2" (click)="agregarTecnicas.emit(linea)">
+                  Agregar tecnica
+                </button>
+                <button
+                  type="button"
+                  class="btn-editar-colores ms-2 text-danger"
+                  *ngIf="(linea.porcentajeDescuento ?? 0) > 0"
+                  (click)="quitarDescuentoProducto.emit(linea)"
+                >
+                  Quitar descuento
+                </button>
+              </div>
+            </div>
+          </td>
+          <td class="text-end">
+            <div *ngIf="(linea.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+              {{ (linea.precioUnitarioBase ?? linea.precioUnitario) | currency: 'MXN' }}
+            </div>
+            <div>{{ linea.precioUnitario | currency: 'MXN' }}</div>
+          </td>
+          <td>
+            <div class="cantidad-display">{{ linea.cantidad }}</div>
+          </td>
+          <td class="text-end">
+            <div>{{ getImporteLinea(linea) | currency: 'MXN' }}</div>
+            <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
+              Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
+            </div>
+          </td>
+          <td class="text-end">
+            <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-warning text-white"
+                aria-label="Editar producto"
+                title="Editar producto"
+                (click)="editarProducto.emit(linea)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                aria-label="Eliminar producto"
+                title="Eliminar producto"
+                (click)="eliminarProducto.emit(linea.id)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="tecnica-row" *ngFor="let tecnica of linea.tecnicasImpresion; trackBy: trackByTecnica">
+          <td>
+            <div class="producto-cell tecnica-cell">
+              <ng-container *ngIf="tecnica.imagen; else sinImagenTecnicaResumen">
+                <img [src]="tecnica.imagen" [alt]="tecnica.nombre" class="producto-thumb tecnica-thumb" />
+              </ng-container>
+              <ng-template #sinImagenTecnicaResumen>
+                <div class="producto-thumb-placeholder tecnica-thumb">Sin imagen</div>
+              </ng-template>
+              <div>
+                <div class="fw-semibold">{{ tecnica.nombre }}</div>
+                <div class="small text-muted">
+                  {{ tecnica.tintasSeleccionadas }} tinta(s) / {{ tecnica.posicionesSeleccionadas }} posicion(es)
+                </div>
+                <div class="small text-muted" *ngIf="tecnica.color">
+                  Color: {{ tecnica.color }}
+                </div>
+                <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
+                  Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
+                </div>
+                <button
+                  type="button"
+                  class="btn-editar-colores ms-2 text-danger"
+                  *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0"
+                  (click)="quitarDescuentoTecnica.emit(tecnica)"
+                >
+                  Quitar descuento
+                </button>
+              </div>
+            </div>
+          </td>
+          <td class="text-end">
+            <div *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
+              {{ (tecnica.precioUnitarioBase ?? tecnica.precioUnitario ?? 0) | currency: 'MXN' }}
+            </div>
+            <div>{{ (tecnica.precioUnitario ?? 0) | currency: 'MXN' }}</div>
+          </td>
+          <td>
+            <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
+          </td>
+          <td class="text-end">
+            <div>{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</div>
+            <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
+              Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
+            </div>
+          </td>
+          <td class="text-end">
+            <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
+              <button
+                type="button"
+                class="btn btn-sm btn-warning text-white"
+                aria-label="Editar técnica"
+                title="Editar técnica"
+                (click)="editarTecnicas.emit(linea)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                aria-label="Eliminar técnica"
+                title="Eliminar técnica"
+                (click)="eliminarTecnica.emit({ linea: linea, tecnica: tecnica })"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                  <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+  </table>
+</div>

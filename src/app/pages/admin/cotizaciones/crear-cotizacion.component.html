@@ -42,132 +42,36 @@
         Copia de la cotizacion #{{ idCotizacionOrigen }}. Puedes modificar sus datos y agregar o quitar productos; la original no se modificara.
       </p>
 
-      <p *ngIf="!esEdicion && !esCopia" class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
+      <app-cliente-section
+        [mostrarBuscador]="!esEdicion && !esCopia"
+        [(termino)]="terminoBusquedaCliente"
+        [buscando]="buscandoClientes"
+        [clientes]="clientesEncontrados"
+        [busquedaError]="clienteBusquedaError"
+        [busquedaInfo]="clienteBusquedaInfo"
+        [consultandoVendedor]="consultandoVendedorSugerido"
+        [vendedorError]="vendedorSugeridoError"
+        [cargando]="isLoadingCliente"
+        [error]="clienteError"
+        [cliente]="cliente"
+        [clienteId]="clienteId"
+        [telefono]="clienteTelefono"
+        [vendedorSugerido]="vendedorSugerido"
+        (buscar)="buscarClientes()"
+        (limpiar)="limpiarBusquedaCliente()"
+        (seleccionar)="seleccionarCliente($event)"
+      ></app-cliente-section>
 
-      <div class="cliente-buscador mt-3" *ngIf="!esEdicion && !esCopia">
-        <label class="form-label small">Buscar cliente</label>
-        <div class="input-group mb-2">
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Buscar por nombre, telefono o correo"
-            [(ngModel)]="terminoBusquedaCliente"
-            (input)="limpiarBusquedaCliente()"
-            (keyup.enter)="buscarClientes()"
-          />
-          <button class="btn btn-outline-primary" type="button" (click)="buscarClientes()" [disabled]="buscandoClientes">
-            {{ buscandoClientes ? 'Buscando...' : 'Buscar cliente' }}
-          </button>
-        </div>
-
-        <div class="lista-clientes mb-2" *ngIf="clientesEncontrados.length > 0">
-          <button
-            type="button"
-            class="cliente-item"
-            *ngFor="let clienteEncontrado of clientesEncontrados"
-            (click)="seleccionarCliente(clienteEncontrado)"
-          >
-            <div class="fw-semibold">{{ clienteEncontrado.value }}</div>
-            <div class="small text-muted text-truncate">{{ clienteEncontrado.label }}</div>
-          </button>
-        </div>
-
-        <p *ngIf="clienteBusquedaError" class="text-danger small mb-0">{{ clienteBusquedaError }}</p>
-        <p *ngIf="clienteBusquedaInfo" class="text-success small mb-0">{{ clienteBusquedaInfo }}</p>
-        <p *ngIf="consultandoVendedorSugerido" class="text-muted small mb-0">Validando vendedor sugerido...</p>
-        <p *ngIf="vendedorSugeridoError" class="text-danger small mb-0">{{ vendedorSugeridoError }}</p>
-      </div>
-
-      <p *ngIf="clienteError" class="text-danger small mt-2 mb-0">{{ clienteError }}</p>
-      <div *ngIf="isLoadingCliente" class="text-muted small mt-2">Cargando cliente...</div>
-
-      <div *ngIf="cliente" class="cliente-box mt-3">
-        <div class="row g-2">
-          <div class="col-12 col-md-3">
-            <span class="text-muted d-block small">Nombre</span>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-              <strong>{{ cliente.nombre }}</strong>
-              <span *ngIf="cliente.distribuidor === 1" class="badge text-bg-primary">Distribuidor</span>
-              <span *ngIf="cliente.distribuidor === 2" class="badge text-bg-warning">Intermediario</span>
-            </div>
-          </div>
-          <div class="col-12 col-md-3">
-            <span class="text-muted d-block small">Correo</span>
-            <strong>{{ cliente.email || 'Sin email' }}</strong>
-          </div>
-          <div class="col-12 col-md-3">
-            <span class="text-muted d-block small">Telefono</span>
-            <strong>{{ clienteTelefono }}</strong>
-          </div>
-          <div class="col-12 col-md-3" *ngIf="clienteId !== null">
-            <span class="text-muted d-block small">ID Cliente</span>
-            <strong>#{{ clienteId }}</strong>
-          </div>
-          <div class="col-12 col-md-3">
-            <span class="text-muted d-block small">Vendedor sugerido</span>
-            <ng-container *ngIf="vendedorSugerido as vendedor; else sinVendedorSugerido">
-              <strong>{{ vendedor.nombre }}</strong>
-              <div class="small text-muted">{{ vendedor.correo }}</div>
-            </ng-container>
-            <ng-template #sinVendedorSugerido>
-              <strong>Sin vendedor sugerido</strong>
-            </ng-template>
-          </div>
-        </div>
-      </div>
-
-      <div class="cotizacion-meta mt-3">
-        <h3 class="h6 mb-3">Datos de la cotizacion</h3>
-
-        <div class="row g-3">
-          <div class="col-12 col-lg-6">
-            <label class="form-label small">Riesgos</label>
-            <textarea
-              required
-              class="form-control"
-              rows="2"
-              [(ngModel)]="riesgos"
-              placeholder="Ej. Sujeto a disponibilidad de inventario"
-            ></textarea>
-            <div *ngIf="!riesgos.trim()" class="text-danger small mt-1">Los riesgos son obligatorios.</div>
-          </div>
-          <div class="col-12 col-lg-6">
-            <label class="form-label small">Condiciones de venta</label>
-            <select
-              class="form-select mb-2"
-              [(ngModel)]="idCondicionVentaSeleccionada"
-              (ngModelChange)="seleccionarCondicionVenta($event)"
-            >
-              <option value="">Selecciona una condicion de venta</option>
-              <option *ngFor="let condicion of condicionesVentaCatalogo" [value]="condicion.id">
-                {{ condicion.nombre }}
-              </option>
-            </select>
-            <div *ngIf="cargandoCondicionesVenta" class="text-muted small mb-2">Cargando condiciones de venta...</div>
-            <p *ngIf="condicionesVentaError" class="text-danger small mb-2">{{ condicionesVentaError }}</p>
-            <textarea
-              required
-              class="form-control"
-              rows="3"
-              [(ngModel)]="condicionesVenta"
-              placeholder="Ej. Pago 50% anticipo y 50% contra entrega"
-            ></textarea>
-            <div *ngIf="!condicionesVenta.trim()" class="text-danger small mt-1">Las condiciones de venta son obligatorias.</div>
-          </div>
-
-          <div class="col-12 col-sm-6 col-lg-3 d-flex align-items-end">
-            <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="permitirPago"
-                [(ngModel)]="permitirPago"
-              />
-              <label class="form-check-label" for="permitirPago">Permitir pago</label>
-            </div>
-          </div>
-        </div>
-      </div>
+      <app-datos-cotizacion
+        [(riesgos)]="riesgos"
+        [(condicionesVenta)]="condicionesVenta"
+        [(idCondicionSeleccionada)]="idCondicionVentaSeleccionada"
+        [(permitirPago)]="permitirPago"
+        [catalogo]="condicionesVentaCatalogo"
+        [cargandoCondiciones]="cargandoCondicionesVenta"
+        [condicionesError]="condicionesVentaError"
+        (condicionSeleccionada)="seleccionarCondicionVenta($event)"
+      ></app-datos-cotizacion>
     </div>
   </div>
 
@@ -209,191 +113,16 @@
 
       <div class="row g-3 align-items-start">
         <div class="col-12 col-lg-8">
-          <p *ngIf="lineasCotizacion.length === 0" class="text-muted small mb-0">
-            Aun no agregas productos a la cotizacion.
-          </p>
-
-          <div class="tabla-wrapper" *ngIf="lineasCotizacion.length > 0">
-            <table class="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th class="text-end">Precio</th>
-                  <th style="width: 120px">Cantidad</th>
-                  <th class="text-end">Importe</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <ng-container *ngFor="let linea of lineasCotizacion; trackBy: trackByLinea">
-                  <tr>
-                    <td>
-                      <div class="producto-cell">
-                        <ng-container *ngIf="linea.imagen; else sinImagenProducto">
-                          <img [src]="linea.imagen" [alt]="linea.value" class="producto-thumb" />
-                        </ng-container>
-                        <ng-template #sinImagenProducto>
-                          <div class="producto-thumb-placeholder">Sin imagen</div>
-                        </ng-template>
-                        <div>
-                          <div class="fw-semibold">{{ linea.value }}</div>
-                          <div class="small text-muted">{{ linea.label }}</div>
-                          <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
-                            Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
-                          </div>
-                          <div
-                            class="small text-secondary"
-                            *ngIf="linea.coloresSeleccionados?.length"
-                            [title]="formatearColoresSeleccionados(linea.coloresSeleccionados)"
-                          >
-                            Colores: {{ formatearColoresSeleccionadosCompacto(linea.coloresSeleccionados) }}
-                          </div>
-                          <div class="small text-muted">
-                            {{ getResumenColoresSeleccionados(linea.coloresSeleccionados) }}
-                          </div>
-                          <div class="small regla-negocio" *ngIf="linea.montoReglaNegocio > 0">
-                            Producto con cuota para vender desde 1 pza: {{ linea.montoReglaNegocio | currency: 'MXN' }}
-                          </div>
-                          <button
-                            type="button"
-                            class="btn-editar-colores ms-2"
-                            (click)="abrirModalAgregarTecnicas(linea)"
-                          >
-                            Agregar tecnica
-                          </button>
-                          <button
-                            type="button"
-                            class="btn-editar-colores ms-2 text-danger"
-                            *ngIf="(linea.porcentajeDescuento ?? 0) > 0"
-                            (click)="quitarDescuentoProducto(linea)"
-                          >
-                            Quitar descuento
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      <div *ngIf="(linea.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
-                        {{ (linea.precioUnitarioBase ?? linea.precioUnitario) | currency: 'MXN' }}
-                      </div>
-                      <div>{{ linea.precioUnitario | currency: 'MXN' }}</div>
-                    </td>
-                    <td>
-                      <div class="cantidad-display">{{ linea.cantidad }}</div>
-                    </td>
-                    <td class="text-end">
-                      <div>{{ getImporteLinea(linea) | currency: 'MXN' }}</div>
-                      <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
-                        Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-warning text-white"
-                          aria-label="Editar producto"
-                          title="Editar producto"
-                          (click)="actualizarCantidadDesdeModal(linea)"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          aria-label="Eliminar producto"
-                          title="Eliminar producto"
-                          (click)="eliminarProducto(linea.id)"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  <tr class="tecnica-row" *ngFor="let tecnica of linea.tecnicasImpresion; trackBy: trackByTecnicaImpresion">
-                    <td>
-                      <div class="producto-cell tecnica-cell">
-                        <ng-container *ngIf="tecnica.imagen; else sinImagenTecnicaResumen">
-                          <img [src]="tecnica.imagen" [alt]="tecnica.nombre" class="producto-thumb tecnica-thumb" />
-                        </ng-container>
-                        <ng-template #sinImagenTecnicaResumen>
-                          <div class="producto-thumb-placeholder tecnica-thumb">Sin imagen</div>
-                        </ng-template>
-                        <div>
-                          <div class="fw-semibold">{{ tecnica.nombre }}</div>
-                          <div class="small text-muted">
-                            {{ tecnica.tintasSeleccionadas }} tinta(s) / {{ tecnica.posicionesSeleccionadas }} posicion(es)
-                          </div>
-                          <div class="small text-muted" *ngIf="tecnica.color">
-                            Color: {{ tecnica.color }}
-                          </div>
-                          <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
-                            Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
-                          </div>
-                          <button
-                            type="button"
-                            class="btn-editar-colores ms-2 text-danger"
-                            *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0"
-                            (click)="quitarDescuentoTecnica(tecnica)"
-                          >
-                            Quitar descuento
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      <div *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0" class="text-muted text-decoration-line-through">
-                        {{ (tecnica.precioUnitarioBase ?? tecnica.precioUnitario ?? 0) | currency: 'MXN' }}
-                      </div>
-                      <div>{{ (tecnica.precioUnitario ?? 0) | currency: 'MXN' }}</div>
-                    </td>
-                    <td>
-                      <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
-                    </td>
-                    <td class="text-end">
-                      <div>{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</div>
-                      <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
-                        Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
-                      </div>
-                    </td>
-                    <td class="text-end">
-                      <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-warning text-white"
-                          aria-label="Editar técnica"
-                          title="Editar técnica"
-                          (click)="abrirModalEditarTecnicas(linea)"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          aria-label="Eliminar técnica"
-                          title="Eliminar técnica"
-                          (click)="eliminarTecnica(linea, tecnica)"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-container>
-              </tbody>
-            </table>
-          </div>
+          <app-lineas-tabla
+            [lineas]="lineasCotizacion"
+            (agregarTecnicas)="abrirModalAgregarTecnicas($event)"
+            (editarProducto)="abrirModalEditarCantidad($event)"
+            (eliminarProducto)="eliminarProducto($event)"
+            (quitarDescuentoProducto)="quitarDescuentoProducto($event)"
+            (editarTecnicas)="abrirModalEditarTecnicas($event)"
+            (eliminarTecnica)="eliminarTecnica($event.linea, $event.tecnica)"
+            (quitarDescuentoTecnica)="quitarDescuentoTecnica($event)"
+          ></app-lineas-tabla>
         </div>
 
         <div class="col-12 col-lg-4">

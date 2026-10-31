@@ -1,0 +1,74 @@
+<p *ngIf="mostrarBuscador" class="text-muted small mb-2">Busca y selecciona un cliente para cargarlo en esta cotizacion.</p>
+
+<div class="cliente-buscador mt-3" *ngIf="mostrarBuscador">
+  <label class="form-label small">Buscar cliente</label>
+  <div class="input-group mb-2">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="Buscar por nombre, telefono o correo"
+      [ngModel]="termino"
+      (ngModelChange)="terminoChange.emit($event)"
+      (input)="limpiar.emit()"
+      (keyup.enter)="buscar.emit()"
+    />
+    <button class="btn btn-outline-primary" type="button" (click)="buscar.emit()" [disabled]="buscando">
+      {{ buscando ? 'Buscando...' : 'Buscar cliente' }}
+    </button>
+  </div>
+
+  <div class="lista-clientes mb-2" *ngIf="clientes.length > 0">
+    <button
+      type="button"
+      class="cliente-item"
+      *ngFor="let clienteEncontrado of clientes"
+      (click)="seleccionar.emit(clienteEncontrado)"
+    >
+      <div class="fw-semibold">{{ clienteEncontrado.value }}</div>
+      <div class="small text-muted text-truncate">{{ clienteEncontrado.label }}</div>
+    </button>
+  </div>
+
+  <p *ngIf="busquedaError" class="text-danger small mb-0">{{ busquedaError }}</p>
+  <p *ngIf="busquedaInfo" class="text-success small mb-0">{{ busquedaInfo }}</p>
+  <p *ngIf="consultandoVendedor" class="text-muted small mb-0">Validando vendedor sugerido...</p>
+  <p *ngIf="vendedorError" class="text-danger small mb-0">{{ vendedorError }}</p>
+</div>
+
+<p *ngIf="error" class="text-danger small mt-2 mb-0">{{ error }}</p>
+<div *ngIf="cargando" class="text-muted small mt-2">Cargando cliente...</div>
+
+<div *ngIf="cliente" class="cliente-box mt-3">
+  <div class="row g-2">
+    <div class="col-12 col-md-3">
+      <span class="text-muted d-block small">Nombre</span>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <strong>{{ cliente.nombre }}</strong>
+        <span *ngIf="cliente.distribuidor === 1" class="badge text-bg-primary">Distribuidor</span>
+        <span *ngIf="cliente.distribuidor === 2" class="badge text-bg-warning">Intermediario</span>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <span class="text-muted d-block small">Correo</span>
+      <strong>{{ cliente.email || 'Sin email' }}</strong>
+    </div>
+    <div class="col-12 col-md-3">
+      <span class="text-muted d-block small">Telefono</span>
+      <strong>{{ telefono }}</strong>
+    </div>
+    <div class="col-12 col-md-3" *ngIf="clienteId !== null">
+      <span class="text-muted d-block small">ID Cliente</span>
+      <strong>#{{ clienteId }}</strong>
+    </div>
+    <div class="col-12 col-md-3">
+      <span class="text-muted d-block small">Vendedor sugerido</span>
+      <ng-container *ngIf="vendedorSugerido as vendedor; else sinVendedorSugerido">
+        <strong>{{ vendedor.nombre }}</strong>
+        <div class="small text-muted">{{ vendedor.correo }}</div>
+      </ng-container>
+      <ng-template #sinVendedorSugerido>
+        <strong>Sin vendedor sugerido</strong>
+      </ng-template>
+    </div>
+  </div>
+</div>
