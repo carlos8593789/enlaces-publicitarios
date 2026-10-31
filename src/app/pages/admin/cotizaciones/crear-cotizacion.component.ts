@@ -42,6 +42,12 @@ import {
   TecnicasImpresionService
 } from '../../../services/tecnicas-impresion.service';
 
+import { CantidadProductoModalComponent } from './modals/cantidad-producto-modal.component';
+import { ConfirmarTecnicasModalComponent } from './modals/confirmar-tecnicas-modal.component';
+import { DescuentoModalComponent } from './modals/descuento-modal.component';
+import { TecnicasImpresionModalComponent } from './modals/tecnicas-impresion-modal.component';
+import { VendedorSugeridoModalComponent } from './modals/vendedor-sugerido-modal.component';
+
 interface StockColorItem extends ProductoStockColor {
   cantidadSeleccionada: number;
 }
@@ -49,7 +55,15 @@ interface StockColorItem extends ProductoStockColor {
 @Component({
   selector: 'app-crear-cotizacion',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CantidadProductoModalComponent,
+    ConfirmarTecnicasModalComponent,
+    DescuentoModalComponent,
+    TecnicasImpresionModalComponent,
+    VendedorSugeridoModalComponent
+  ],
   templateUrl: './crear-cotizacion.component.html',
   styleUrl: './crear-cotizacion.component.scss'
 })

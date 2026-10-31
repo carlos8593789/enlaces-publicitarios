@@ -1,0 +1,21 @@
+<div class="app-modal-backdrop"></div>
+
+<div class="app-modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="title ? titleId : null" (click)="onBackdropClick()">
+  <div class="app-modal__card" [ngClass]="'app-modal__card--' + size" (click)="$event.stopPropagation()">
+    <div class="app-modal__header" *ngIf="title || showClose">
+      <div>
+        <h4 *ngIf="title" [id]="titleId" class="h6 mb-1">{{ title }}</h4>
+        <div class="app-modal__subtitle"><ng-content select="[modal-subtitle]"></ng-content></div>
+      </div>
+      <button *ngIf="showClose" type="button" class="btn-close" aria-label="Cerrar" (click)="requestClose()"></button>
+    </div>
+
+    <div class="app-modal__body">
+      <ng-content></ng-content>
+    </div>
+
+    <div class="app-modal__footer">
+      <ng-content select="[modal-footer]"></ng-content>
+    </div>
+  </div>
+</div>

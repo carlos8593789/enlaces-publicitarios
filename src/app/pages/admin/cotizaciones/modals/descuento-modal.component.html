@@ -1,0 +1,51 @@
+<app-base-modal title="Aplicar descuento" (closed)="cerrar.emit()">
+  <div class="mb-3">
+    <label class="form-label small" for="descuentoAlcance">Aplicar a</label>
+    <select
+      id="descuentoAlcance"
+      class="form-select form-select-sm"
+      [ngModel]="alcance"
+      (ngModelChange)="alcanceChange.emit($event)"
+    >
+      <option value="productos">Solo productos</option>
+      <option value="tecnicas">Solo tecnicas de impresion</option>
+      <option value="todo">Productos y tecnicas de impresion</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label small" for="descuentoPorcentaje">Porcentaje de descuento</label>
+    <div class="input-group input-group-sm">
+      <input
+        id="descuentoPorcentaje"
+        type="number"
+        class="form-control"
+        min="1"
+        max="100"
+        step="1"
+        [ngModel]="porcentaje"
+        (ngModelChange)="porcentajeChange.emit($event)"
+      />
+      <span class="input-group-text">%</span>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label small" for="descuentoNota">Motivo del descuento</label>
+    <textarea
+      id="descuentoNota"
+      class="form-control form-control-sm"
+      rows="3"
+      [ngModel]="nota"
+      (ngModelChange)="notaChange.emit($event)"
+      placeholder="Ej. Precio especial autorizado por ventas"
+    ></textarea>
+  </div>
+
+  <p *ngIf="error" class="text-danger small mb-0">{{ error }}</p>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="cerrar.emit()">Cancelar</button>
+    <button type="button" class="btn btn-primary" (click)="aplicar.emit()">Aplicar descuento</button>
+  </ng-container>
+</app-base-modal>

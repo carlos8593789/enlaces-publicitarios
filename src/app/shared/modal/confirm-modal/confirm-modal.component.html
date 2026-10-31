@@ -1,0 +1,10 @@
+<app-base-modal *ngIf="open" size="sm" [title]="title" (closed)="onCancel()">
+  <p class="mb-0">{{ message }}</p>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">{{ cancelText }}</button>
+    <button type="button" class="btn btn-primary" (click)="onConfirm()" [disabled]="confirmDisabled">
+      {{ confirmText }}
+    </button>
+  </ng-container>
+</app-base-modal>

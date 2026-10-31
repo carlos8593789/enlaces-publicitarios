@@ -1,0 +1,35 @@
+@use './producto-thumb';
+
+.stock-colores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.stock-color-card {
+  border: 1px solid #e6edf8;
+  background: #fafcff;
+  border-radius: 0.6rem;
+  padding: 0.65rem;
+}
+
+.stock-almacen-lista {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stock-almacen-item {
+  border: 1px dashed #d7dfeb;
+  border-radius: 0.5rem;
+  padding: 0.45rem;
+  background: #fff;
+}
+
+.stock-almacen-nombre {
+  color: #3a4654;
+}
+
+.stock-almacen-nombre :is(br) {
+  display: block;
+}

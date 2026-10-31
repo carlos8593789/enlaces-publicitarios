@@ -15,13 +15,14 @@ import {
 } from '../../../models/productos-remision-surtir.model';
 import { ProductosRemisionSurtirService } from '../../../services/productos-remision-surtir.service';
 import { AuthService } from '../../../auth/auth.service';
-import { ConfirmModalComponent } from '../../../shared/confirm-modal.component';
+import { BaseModalComponent } from '../../../shared/modal/base-modal/base-modal.component';
+import { ConfirmModalComponent } from '../../../shared/modal/confirm-modal/confirm-modal.component';
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-cliente-qr-procesar',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, BaseModalComponent, ConfirmModalComponent],
   templateUrl: './cliente-qr-procesar.component.html',
   styleUrl: './cliente-qr-procesar.component.scss'
 })

@@ -1,0 +1,12 @@
+<app-base-modal size="sm" title="Tecnica de impresion" (closed)="continuarSinTecnicas.emit()">
+  <p class="small text-muted mb-0">¿Requiere agregar alguna tecnica de impresion?</p>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="continuarSinTecnicas.emit()">
+      No, continuar
+    </button>
+    <button type="button" class="btn btn-primary" (click)="agregarTecnicas.emit()" [disabled]="cargando">
+      Si, agregar
+    </button>
+  </ng-container>
+</app-base-modal>

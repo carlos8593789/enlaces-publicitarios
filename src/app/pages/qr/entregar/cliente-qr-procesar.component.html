@@ -176,45 +176,31 @@
   </div>
 </section>
 
-<div *ngIf="signatureModalOpen" class="modal fade show d-block" tabindex="-1" aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Firma de entrega</h5>
-        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeSignatureModal()"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mt-3">
-          <label class="form-label">Nombre</label>
-          <input type="text" class="form-control" [(ngModel)]="personaEntrega" placeholder="Nombre del firmante" />
-        </div>
-        <label class="form-label">Firma</label>
-        <div class="signature-pad border rounded bg-light">
-          <canvas #signatureCanvas (pointerdown)="startDraw($event)" (pointermove)="draw($event)"
-            (pointerup)="endDraw()" (pointerleave)="endDraw()"></canvas>
-        </div>
-        <p class="text-muted small mb-2">Firme en el área para confirmar la entrega.</p>
-        <div class="mt-3">
-          <label class="form-label">Fotografía <span class="text-danger">*</span></label>
-          <input type="file" class="form-control" accept="image/*" capture="environment" required
-            (change)="onPhotoSelected($event)" />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" (click)="clearSignature()">
-          Limpiar
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="closeSignatureModal()">
-          Cancelar
-        </button>
-        <button type="button" class="btn btn-primary" (click)="saveSignature()" [disabled]="entregaSubmitting">
-          Guardar firma
-        </button>
-      </div>
-    </div>
+<app-base-modal *ngIf="signatureModalOpen" size="sm" title="Firma de entrega" (closed)="closeSignatureModal()">
+  <div>
+    <label class="form-label">Nombre</label>
+    <input type="text" class="form-control" [(ngModel)]="personaEntrega" placeholder="Nombre del firmante" />
   </div>
-</div>
-<div *ngIf="signatureModalOpen" class="modal-backdrop fade show"></div>
+  <label class="form-label mt-3">Firma</label>
+  <div class="signature-pad border rounded bg-light">
+    <canvas #signatureCanvas (pointerdown)="startDraw($event)" (pointermove)="draw($event)"
+      (pointerup)="endDraw()" (pointerleave)="endDraw()"></canvas>
+  </div>
+  <p class="text-muted small mb-2">Firme en el área para confirmar la entrega.</p>
+  <div class="mt-3">
+    <label class="form-label">Fotografía <span class="text-danger">*</span></label>
+    <input type="file" class="form-control" accept="image/*" capture="environment" required
+      (change)="onPhotoSelected($event)" />
+  </div>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="clearSignature()">Limpiar</button>
+    <button type="button" class="btn btn-secondary" (click)="closeSignatureModal()">Cancelar</button>
+    <button type="button" class="btn btn-primary" (click)="saveSignature()" [disabled]="entregaSubmitting">
+      Guardar firma
+    </button>
+  </ng-container>
+</app-base-modal>
 
 <app-confirm-modal [open]="surtirConfirmOpen" title="Confirmar surtido" message="¿Deseas surtir la mercancia ahora?"
   confirmText="Confirmar" cancelText="Cancelar" [confirmDisabled]="surtirLoading" (confirm)="confirmSurtirMercancia()"

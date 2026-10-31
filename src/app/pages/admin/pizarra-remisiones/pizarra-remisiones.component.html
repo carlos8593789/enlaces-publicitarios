@@ -62,20 +62,12 @@
   </div>
 </div>
 
-<div *ngIf="qrModalOpen" class="modal fade show d-block" tabindex="-1" aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">QR de acceso</h5>
-        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeQrModal()"></button>
-      </div>
-      <div class="modal-body text-center">
-        <img *ngIf="qrImageUrl" [src]="qrImageUrl" alt="QR" class="qr-image" />
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeQrModal()">Cerrar</button>
-      </div>
-    </div>
+<app-base-modal *ngIf="qrModalOpen" size="sm" title="QR de acceso" (closed)="closeQrModal()">
+  <div class="text-center">
+    <img *ngIf="qrImageUrl" [src]="qrImageUrl" alt="QR" class="qr-image" />
   </div>
-</div>
-<div *ngIf="qrModalOpen" class="modal-backdrop fade show"></div>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-secondary" (click)="closeQrModal()">Cerrar</button>
+  </ng-container>
+</app-base-modal>

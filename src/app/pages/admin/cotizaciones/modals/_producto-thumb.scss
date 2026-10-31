@@ -1,0 +1,24 @@
+.producto-thumb,
+.producto-thumb-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.4rem;
+  flex: 0 0 48px;
+}
+
+.producto-thumb {
+  object-fit: cover;
+  border: 1px solid #dbe4ef;
+}
+
+.producto-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #68707a;
+  border: 1px dashed #b9c2ce;
+  background: #f4f6f8;
+  text-align: center;
+  padding: 0.2rem;
+}

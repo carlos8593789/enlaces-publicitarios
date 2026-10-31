@@ -6,11 +6,12 @@ import { Subscription, catchError, map, of, switchMap, timer } from 'rxjs';
 import { Remision } from '../../../models/remision.model';
 import { AuthService } from '../../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
+import { BaseModalComponent } from '../../../shared/modal/base-modal/base-modal.component';
 
 @Component({
   selector: 'app-pizarra-remisiones',
   standalone: true,
-  imports: [NgFor, NgIf, DatePipe],
+  imports: [NgFor, NgIf, DatePipe, BaseModalComponent],
   templateUrl: './pizarra-remisiones.component.html',
   styleUrl: './pizarra-remisiones.component.scss'
 })

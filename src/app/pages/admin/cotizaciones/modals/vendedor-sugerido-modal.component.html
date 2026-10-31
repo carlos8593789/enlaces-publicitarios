@@ -1,0 +1,26 @@
+<app-base-modal title="Cliente asignado a otro vendedor" (closed)="cerrar.emit()">
+  <p class="small mb-2">
+    El cliente seleccionado tiene asignado como vendedor sugerido a:
+  </p>
+
+  <div class="border rounded p-2 bg-light mb-3" *ngIf="vendedor">
+    <div><strong>{{ vendedor.nombre }}</strong></div>
+    <div class="small text-muted">{{ vendedor.correo }}</div>
+    <div class="small text-muted">ID: {{ vendedor.id }}</div>
+  </div>
+
+  <p class="small text-muted mb-3">
+    Puedes continuar con la cotización o notificar por correo al vendedor sugerido.
+  </p>
+
+  <p *ngIf="enviando" class="text-muted small mb-2">Enviando correo...</p>
+  <p *ngIf="exito" class="text-success small mb-2">{{ exito }}</p>
+  <p *ngIf="error" class="text-danger small mb-2">{{ error }}</p>
+
+  <ng-container modal-footer>
+    <button type="button" class="btn btn-outline-secondary" (click)="cerrar.emit()">Cerrar</button>
+    <button type="button" class="btn btn-primary" (click)="enviarCorreo.emit()" [disabled]="enviando || !puedeEnviar">
+      {{ enviando ? 'Enviando...' : 'Enviar correo' }}
+    </button>
+  </ng-container>
+</app-base-modal>
