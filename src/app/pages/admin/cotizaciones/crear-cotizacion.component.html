@@ -171,65 +171,17 @@
     </div>
   </div>
 
-  <div class="card shadow-sm mb-3">
-    <div class="card-body">
-      <h3 class="h6 mb-3">Buscar productos</h3>
-      <p *ngIf="clienteId === null" class="text-warning small mb-2">
-        Primero selecciona un cliente para comenzar la cotizacion.
-      </p>
-
-      <div class="input-group mb-3">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Buscar por clave o nombre"
-          [(ngModel)]="terminoBusqueda"
-          (input)="limpiarResultadosBusqueda()"
-          (keyup.enter)="buscarProductos()"
-        />
-        <button class="btn btn-outline-primary" type="button" (click)="buscarProductos()" [disabled]="buscandoProductos">
-          {{ buscandoProductos ? 'Buscando...' : 'Buscar' }}
-        </button>
-      </div>
-
-      <div class="lista-resultados mb-3" *ngIf="productosEncontrados.length > 0">
-        <div
-          class="producto-item"
-          *ngFor="let producto of productosEncontrados; trackBy: trackByProducto"
-        >
-          <div class="producto-item-main">
-            <ng-container *ngIf="producto.imagen; else sinImagenBusqueda">
-              <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
-            </ng-container>
-            <ng-template #sinImagenBusqueda>
-              <div class="producto-thumb-placeholder">Sin imagen</div>
-            </ng-template>
-
-            <div>
-              <div class="producto-label">{{ producto.value }}</div>
-              <div class="small text-muted">{{ producto.label }}</div>
-              <div class="small text-primary fw-semibold" *ngIf="producto.bbb === 1">
-                Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="btn btn-sm btn-primary"
-            (click)="abrirModalCantidad(producto)"
-            [disabled]="clienteId === null"
-          >
-            Agregar
-          </button>
-        </div>
-      </div>
-
-      <p *ngIf="productosError" class="text-danger small mb-0">{{ productosError }}</p>
-      <p *ngIf="busquedaInfo" class="text-success small mb-0">{{ busquedaInfo }}</p>
-      <p class="text-muted small mb-0">Selecciona "Agregar" para capturar la cantidad e incluir el producto en la cotizacion.</p>
-    </div>
-  </div>
+  <app-productos-buscador
+    [(termino)]="terminoBusqueda"
+    [buscando]="buscandoProductos"
+    [productos]="productosEncontrados"
+    [error]="productosError"
+    [info]="busquedaInfo"
+    [clienteSeleccionado]="clienteId !== null"
+    (buscar)="buscarProductos()"
+    (limpiar)="limpiarResultadosBusqueda()"
+    (agregar)="abrirModalCantidad($event)"
+  ></app-productos-buscador>
 
   <div class="card shadow-sm">
     <div class="card-body">
@@ -445,49 +397,29 @@
         </div>
 
         <div class="col-12 col-lg-4">
-          <div class="resumen-card">
-            <div class="small text-muted">Productos totales</div>
-            <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
-            <div>Subtotal del producto: <strong>{{ subtotalProducto | currency: 'MXN' }}</strong></div>
-            <div>Subtotal técnica de impresión: <strong>{{ subtotalTecnicasImpresion | currency: 'MXN' }}</strong></div>
-            <div>Cuota para vender desde 1 pza del producto: <strong>{{ totalMontoReglaNegocio | currency: 'MXN' }}</strong></div>
-            <div>SUBTOTAL: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
-            <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
-            <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
-
-            <div class="d-flex gap-2 mt-3">
-              <button
-                type="button"
-                class="btn btn-success flex-grow-1"
-                (click)="crearCotizacion()"
-                [disabled]="creandoCotizacion || cargandoCotizacion || lineasCotizacion.length === 0 || clienteId === null || (esEdicion && !hayCambiosCotizacion)"
-              >
-                {{
-                  creandoCotizacion
-                    ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
-                    : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización' : 'Crear cotización'))
-                }}
-              </button>
-              <a
-                *ngIf="esEdicion || esCopia"
-                class="btn btn-outline-secondary"
-                [href]="getUrlModuloCotizacion()"
-              >
-                Regresar
-              </a>
-            </div>
-
-            <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
-            <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">
-              {{ crearCotizacionExito }}
-              <a
-                *ngIf="idCotizacionCreada !== null"
-                [href]="getUrlDetalleCotizacion(idCotizacionCreada)"
-              >
-                #{{ idCotizacionCreada }}
-              </a>
-            </p>
-          </div>
+          <app-cotizacion-resumen
+            [cantidadTotalProductos]="cantidadTotalProductos"
+            [subtotalProducto]="subtotalProducto"
+            [subtotalTecnicas]="subtotalTecnicasImpresion"
+            [montoReglaNegocio]="totalMontoReglaNegocio"
+            [subtotal]="subtotal"
+            [iva]="iva"
+            [total]="total"
+            [ivaRate]="ivaRate"
+            [sinLineas]="lineasCotizacion.length === 0"
+            [sinCliente]="clienteId === null"
+            [creando]="creandoCotizacion"
+            [cargando]="cargandoCotizacion"
+            [esEdicion]="esEdicion"
+            [esCopia]="esCopia"
+            [hayCambios]="hayCambiosCotizacion"
+            [error]="crearCotizacionError"
+            [exito]="crearCotizacionExito"
+            [urlModulo]="getUrlModuloCotizacion()"
+            [idCotizacionCreada]="idCotizacionCreada"
+            [urlDetalleCreada]="idCotizacionCreada !== null ? getUrlDetalleCotizacion(idCotizacionCreada) : ''"
+            (crear)="crearCotizacion()"
+          ></app-cotizacion-resumen>
         </div>
       </div>
     </div>
@@ -522,9 +454,41 @@
   (agregarTecnicas)="abrirModalTecnicasImpresion()"
 ></app-confirmar-tecnicas-modal>
 
-<app-tecnicas-impresion-modal *ngIf="modalTecnicasImpresionAbierto" [ctx]="this"></app-tecnicas-impresion-modal>
+<app-tecnicas-impresion-modal
+  *ngIf="modalTecnicasImpresionAbierto"
+  [modo]="modoModalTecnicas"
+  [productoPendiente]="productoPendienteAgregar"
+  [catalogo]="tecnicasImpresionCatalogo"
+  [cargando]="cargandoTecnicasImpresion"
+  [error]="tecnicasImpresionError"
+  [calculandoPrecio]="calculandoPrecioTecnicas"
+  [piezasAsignadas]="getPiezasTecnicasExistentes() + obtenerTotalPiezasTecnicasSeleccionadas()"
+  (cerrar)="cerrarModalTecnicasImpresion()"
+  (confirmar)="confirmarTecnicasSeleccionadas()"
+  (agregarOtra)="agregarOtraTecnicaImpresion($event)"
+  (eliminarInstancia)="eliminarInstanciaTecnica($event)"
+  (alternar)="alternarTecnicaImpresion($event.tecnica, $event.seleccionada)"
+  (piezasChange)="actualizarPiezasTecnica($event.tecnica, $event.valor)"
+  (tintasChange)="actualizarTintasTecnica($event.tecnica, $event.valor)"
+  (posicionesChange)="actualizarPosicionesTecnica($event.tecnica, $event.valor)"
+  (colorChange)="actualizarColorTecnica($event.tecnica, $event.valor)"
+></app-tecnicas-impresion-modal>
 
-<app-cantidad-producto-modal *ngIf="modalCantidadAbierto" [ctx]="this"></app-cantidad-producto-modal>
+<app-cantidad-producto-modal
+  *ngIf="modalCantidadAbierto"
+  [editando]="!!lineaEditando"
+  [producto]="productoSeleccionado"
+  [stockLocal]="stockLocalProducto"
+  [(descripcion)]="descripcionProductoModal"
+  [cargandoStock]="cargandoStockProducto"
+  [error]="stockProductoError"
+  [colores]="coloresStockProducto"
+  [totalSeleccionado]="cantidadTotalSeleccionadaEnModal"
+  [calculandoPrecio]="calculandoPrecioProducto"
+  (cerrar)="cerrarModalCantidad()"
+  (confirmar)="confirmarAgregarProducto()"
+  (cantidadColorChange)="actualizarCantidadColor($event.item, $event.cantidad)"
+></app-cantidad-producto-modal>
 
 <div
   *ngIf="creandoCotizacion"

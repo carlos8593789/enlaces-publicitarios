@@ -77,6 +77,8 @@ import {
   normalizarStockProducto,
   normalizarTecnicasImpresion
 } from './utils/cotizacion-normalizadores';
+import { CotizacionResumenComponent } from './sections/cotizacion-resumen.component';
+import { ProductosBuscadorComponent } from './sections/productos-buscador.component';
 
 @Component({
   selector: 'app-crear-cotizacion',
@@ -86,7 +88,9 @@ import {
     FormsModule,
     CantidadProductoModalComponent,
     ConfirmarTecnicasModalComponent,
+    CotizacionResumenComponent,
     DescuentoModalComponent,
+    ProductosBuscadorComponent,
     TecnicasImpresionModalComponent,
     VendedorSugeridoModalComponent
   ],

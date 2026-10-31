@@ -1,9 +1,9 @@
-<app-base-modal size="lg" [title]="titulo" (closed)="ctx.cerrarModalTecnicasImpresion()">
+<app-base-modal size="lg" [title]="titulo" (closed)="cerrar.emit()">
   <ng-container modal-subtitle>
     Selecciona una o varias tecnicas y define cuantas tintas o posiciones requiere cada una.
   </ng-container>
 
-  <div *ngIf="ctx.productoPendienteAgregar as productoPendiente" class="d-flex gap-2 align-items-center mb-3">
+  <div *ngIf="productoPendiente" class="d-flex gap-2 align-items-center mb-3">
     <ng-container *ngIf="productoPendiente.producto.imagen; else sinImagenTecnica">
       <img [src]="productoPendiente.producto.imagen" [alt]="productoPendiente.producto.value" class="producto-thumb" />
     </ng-container>
@@ -16,19 +16,19 @@
     </div>
   </div>
 
-  <div *ngIf="ctx.cargandoTecnicasImpresion" class="text-muted small mb-3">
+  <div *ngIf="cargando" class="text-muted small mb-3">
     Cargando tecnicas de impresion...
   </div>
 
-  <p *ngIf="ctx.tecnicasImpresionError" class="text-danger small mb-3">{{ ctx.tecnicasImpresionError }}</p>
+  <p *ngIf="error" class="text-danger small mb-3">{{ error }}</p>
 
-  <div class="small text-muted mb-3" *ngIf="ctx.productoPendienteAgregar">
+  <div class="small text-muted mb-3" *ngIf="productoPendiente">
     Piezas asignadas a tecnicas:
-    <strong>{{ ctx.getPiezasTecnicasExistentes() + ctx.obtenerTotalPiezasTecnicasSeleccionadas() }}</strong>
+    <strong>{{ piezasAsignadas }}</strong>
   </div>
 
-  <div class="tecnicas-lista" *ngIf="!ctx.cargandoTecnicasImpresion && ctx.tecnicasImpresionCatalogo.length > 0">
-    <div class="tecnica-card" *ngFor="let tecnica of ctx.tecnicasImpresionCatalogo; trackBy: ctx.trackByTecnicaImpresion">
+  <div class="tecnicas-lista" *ngIf="!cargando && catalogo.length > 0">
+    <div class="tecnica-card" *ngFor="let tecnica of catalogo; trackBy: trackByTecnica">
       <div class="tecnica-card-header">
         <div class="d-flex align-items-center gap-2">
           <ng-container *ngIf="tecnica.imagen; else sinImagenTecnicaItem">
@@ -40,8 +40,8 @@
           <div>
             <div class="fw-semibold">{{ tecnica.nombre }}</div>
             <div class="small text-muted">Tecnica #{{ tecnica.numero }}</div>
-            <div class="small text-primary" *ngIf="ctx.obtenerCantidadInstanciasTecnica(tecnica.id_tecnica) > 1">
-              Instancia {{ ctx.obtenerNumeroInstanciaTecnica(tecnica) }}
+            <div class="small text-primary" *ngIf="cantidadInstancias(tecnica.id_tecnica) > 1">
+              Instancia {{ numeroInstancia(tecnica) }}
             </div>
           </div>
         </div>
@@ -51,15 +51,15 @@
             *ngIf="tecnica.seleccionada"
             type="button"
             class="btn btn-sm btn-outline-primary"
-            (click)="ctx.agregarOtraTecnicaImpresion(tecnica)"
+            (click)="agregarOtra.emit(tecnica)"
           >
             Agregar otra igual
           </button>
           <button
-            *ngIf="ctx.obtenerCantidadInstanciasTecnica(tecnica.id_tecnica) > 1"
+            *ngIf="cantidadInstancias(tecnica.id_tecnica) > 1"
             type="button"
             class="btn btn-sm btn-outline-danger"
-            (click)="ctx.eliminarInstanciaTecnica(tecnica)"
+            (click)="eliminarInstancia.emit(tecnica)"
             aria-label="Quitar esta instancia"
           >
             Quitar instancia
@@ -70,7 +70,7 @@
               type="checkbox"
               [id]="'tecnica-' + (tecnica.instanciaId ?? tecnica.id_tecnica)"
               [(ngModel)]="tecnica.seleccionada"
-              (ngModelChange)="ctx.alternarTecnicaImpresion(tecnica, $event)"
+              (ngModelChange)="alternar.emit({ tecnica: tecnica, seleccionada: $event })"
             />
             <label class="form-check-label small" [for]="'tecnica-' + (tecnica.instanciaId ?? tecnica.id_tecnica)">Usar tecnica</label>
           </div>
@@ -85,7 +85,7 @@
           min="0"
           [disabled]="!tecnica.seleccionada"
           [ngModel]="tecnica.piezasSeleccionadas"
-          (ngModelChange)="ctx.actualizarPiezasTecnica(tecnica, $event)"
+          (ngModelChange)="piezasChange.emit({ tecnica: tecnica, valor: $event })"
         />
 
         <label class="small text-muted">Tintas</label>
@@ -93,9 +93,9 @@
           class="form-select form-select-sm"
           [disabled]="!tecnica.seleccionada"
           [(ngModel)]="tecnica.tintasSeleccionadas"
-          (ngModelChange)="ctx.actualizarTintasTecnica(tecnica, $event)"
+          (ngModelChange)="tintasChange.emit({ tecnica: tecnica, valor: $event })"
         >
-          <option *ngFor="let tinta of ctx.obtenerOpcionesCantidad(tecnica.cantidad_tintas, 1)" [ngValue]="tinta">
+                    <option *ngFor="let tinta of obtenerOpcionesCantidad(tecnica.cantidad_tintas, 1)" [ngValue]="tinta">
             {{ tinta }}
           </option>
         </select>
@@ -105,9 +105,9 @@
           class="form-select form-select-sm"
           [disabled]="!tecnica.seleccionada"
           [(ngModel)]="tecnica.posicionesSeleccionadas"
-          (ngModelChange)="ctx.actualizarPosicionesTecnica(tecnica, $event)"
+          (ngModelChange)="posicionesChange.emit({ tecnica: tecnica, valor: $event })"
         >
-          <option *ngFor="let posicion of ctx.obtenerOpcionesCantidad(tecnica.cantidad_posiciones, 1)" [ngValue]="posicion">
+                    <option *ngFor="let posicion of obtenerOpcionesCantidad(tecnica.cantidad_posiciones, 1)" [ngValue]="posicion">
             {{ posicion }}
           </option>
         </select>
@@ -119,7 +119,7 @@
           placeholder="Ej. Rojo"
           [disabled]="!tecnica.seleccionada"
           [ngModel]="tecnica.color"
-          (ngModelChange)="ctx.actualizarColorTecnica(tecnica, $event)"
+          (ngModelChange)="colorChange.emit({ tecnica: tecnica, valor: $event })"
         />
 
         <label class="small text-muted">Detalles</label>
@@ -152,15 +152,15 @@
     </div>
   </div>
 
-  <p class="small text-muted mb-0" *ngIf="!ctx.cargandoTecnicasImpresion && ctx.tecnicasImpresionCatalogo.length === 0">
+  <p class="small text-muted mb-0" *ngIf="!cargando && catalogo.length === 0">
     No se encontraron tecnicas aplicables para este producto.
   </p>
 
   <ng-container modal-footer>
-    <button type="button" class="btn btn-outline-secondary" (click)="ctx.cerrarModalTecnicasImpresion()" [disabled]="ctx.calculandoPrecioTecnicas">
+    <button type="button" class="btn btn-outline-secondary" (click)="cerrar.emit()" [disabled]="calculandoPrecio">
       Cancelar
     </button>
-    <button type="button" class="btn btn-primary" (click)="ctx.confirmarTecnicasSeleccionadas()" [disabled]="ctx.cargandoTecnicasImpresion || ctx.calculandoPrecioTecnicas">
+    <button type="button" class="btn btn-primary" (click)="confirmar.emit()" [disabled]="cargando || calculandoPrecio">
       {{ textoConfirmar }}
     </button>
   </ng-container>

@@ -1,0 +1,23 @@
+<div class="resumen-card">
+  <div class="small text-muted">Productos totales</div>
+  <div class="h6 mb-2">{{ cantidadTotalProductos }}</div>
+  <div>Subtotal del producto: <strong>{{ subtotalProducto | currency: 'MXN' }}</strong></div>
+  <div>Subtotal técnica de impresión: <strong>{{ subtotalTecnicas | currency: 'MXN' }}</strong></div>
+  <div>Cuota para vender desde 1 pza del producto: <strong>{{ montoReglaNegocio | currency: 'MXN' }}</strong></div>
+  <div>SUBTOTAL: <strong>{{ subtotal | currency: 'MXN' }}</strong></div>
+  <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
+  <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
+
+  <div class="d-flex gap-2 mt-3">
+    <button type="button" class="btn btn-success flex-grow-1" (click)="crear.emit()" [disabled]="deshabilitado">
+      {{ textoBoton }}
+    </button>
+    <a *ngIf="esEdicion || esCopia" class="btn btn-outline-secondary" [href]="urlModulo">Regresar</a>
+  </div>
+
+  <p *ngIf="error" class="text-danger small mt-2 mb-0">{{ error }}</p>
+  <p *ngIf="exito" class="text-success small mt-2 mb-0">
+    {{ exito }}
+    <a *ngIf="idCotizacionCreada !== null" [href]="urlDetalleCreada">#{{ idCotizacionCreada }}</a>
+  </p>
+</div>

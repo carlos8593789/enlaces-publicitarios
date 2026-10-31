@@ -1,8 +1,8 @@
 <app-base-modal
-  [title]="ctx.lineaEditando ? 'Editar cantidad por color' : 'Agregar producto a cotizacion'"
-  (closed)="ctx.cerrarModalCantidad()"
+  [title]="editando ? 'Editar cantidad por color' : 'Agregar producto a cotizacion'"
+  (closed)="cerrar.emit()"
 >
-  <div *ngIf="ctx.productoSeleccionado as producto" class="d-flex gap-2 align-items-center mb-3">
+  <div *ngIf="producto" class="d-flex gap-2 align-items-center mb-3">
     <ng-container *ngIf="producto.imagen; else sinImagenModal">
       <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
     </ng-container>
@@ -12,7 +12,7 @@
     <div>
       <div class="fw-semibold">{{ producto.value }}</div>
       <div class="small text-muted">{{ producto.label }}</div>
-      <div class="small text-muted">Stock local: {{ ctx.stockLocalProducto }}</div>
+      <div class="small text-muted">Stock local: {{ stockLocal }}</div>
     </div>
   </div>
 
@@ -21,19 +21,20 @@
     <textarea
       class="form-control form-control-sm"
       rows="3"
-      [(ngModel)]="ctx.descripcionProductoModal"
+      [ngModel]="descripcion"
+      (ngModelChange)="descripcionChange.emit($event)"
       placeholder="Descripcion del producto"
     ></textarea>
   </div>
 
-  <div *ngIf="ctx.cargandoStockProducto" class="small text-muted mb-3">
+  <div *ngIf="cargandoStock" class="small text-muted mb-3">
     Cargando stock por color...
   </div>
 
-  <p *ngIf="ctx.stockProductoError" class="text-danger small mb-3">{{ ctx.stockProductoError }}</p>
+  <p *ngIf="error" class="text-danger small mb-3">{{ error }}</p>
 
-  <div class="stock-colores" *ngIf="!ctx.cargandoStockProducto && ctx.coloresStockProducto.length > 0">
-    <div class="stock-color-card" *ngFor="let colorItem of ctx.coloresStockProducto; trackBy: ctx.trackByColor">
+  <div class="stock-colores" *ngIf="!cargandoStock && colores.length > 0">
+    <div class="stock-color-card" *ngFor="let colorItem of colores; trackBy: trackByColor">
       <div class="d-flex align-items-center gap-2 mb-2">
         <ng-container *ngIf="colorItem.imagen; else sinImagenColorStock">
           <img [src]="colorItem.imagen" [alt]="colorItem.color" class="producto-thumb" />
@@ -58,7 +59,7 @@
 
       <div class="mt-3 p-2 border border-2 border-primary rounded bg-primary-subtle">
         <label class="form-label fw-bold text-primary">
-          {{ ctx.lineaEditando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
+          {{ editando ? 'Cantidad final' : 'Cantidad a agregar' }} ({{ colorItem.color }})
         </label>
         <input
           type="number"
@@ -66,31 +67,31 @@
           min="0"
           [max]="colorItem.total"
           [ngModel]="colorItem.cantidadSeleccionada"
-          (ngModelChange)="ctx.actualizarCantidadColor(colorItem, $event)"
+          (ngModelChange)="cantidadColorChange.emit({ item: colorItem, cantidad: $event })"
         />
       </div>
     </div>
   </div>
 
-  <p class="small text-muted mb-3" *ngIf="!ctx.cargandoStockProducto && ctx.coloresStockProducto.length === 0">
+  <p class="small text-muted mb-3" *ngIf="!cargandoStock && colores.length === 0">
     No se encontraron colores para este producto.
   </p>
 
   <div class="small">
     Total seleccionado:
-    <strong>{{ ctx.cantidadTotalSeleccionadaEnModal }}</strong>
+    <strong>{{ totalSeleccionado }}</strong>
   </div>
 
-  <div *ngIf="ctx.calculandoPrecioProducto" class="small text-muted mt-3">
+  <div *ngIf="calculandoPrecio" class="small text-muted mt-3">
     Calculando precio del producto...
   </div>
 
   <ng-container modal-footer>
-    <button type="button" class="btn btn-outline-secondary" (click)="ctx.cerrarModalCantidad()" [disabled]="ctx.calculandoPrecioProducto">
+    <button type="button" class="btn btn-outline-secondary" (click)="cerrar.emit()" [disabled]="calculandoPrecio">
       Cancelar
     </button>
-    <button type="button" class="btn btn-primary" (click)="ctx.confirmarAgregarProducto()" [disabled]="ctx.calculandoPrecioProducto">
-      {{ ctx.calculandoPrecioProducto ? 'Calculando...' : (ctx.lineaEditando ? 'Actualizar' : 'Agregar') }}
+    <button type="button" class="btn btn-primary" (click)="confirmar.emit()" [disabled]="calculandoPrecio">
+      {{ calculandoPrecio ? 'Calculando...' : (editando ? 'Actualizar' : 'Agregar') }}
     </button>
   </ng-container>
 </app-base-modal>

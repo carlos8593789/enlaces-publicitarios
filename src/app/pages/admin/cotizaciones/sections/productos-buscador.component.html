@@ -1,0 +1,57 @@
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h3 class="h6 mb-3">Buscar productos</h3>
+    <p *ngIf="!clienteSeleccionado" class="text-warning small mb-2">
+      Primero selecciona un cliente para comenzar la cotizacion.
+    </p>
+
+    <div class="input-group mb-3">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar por clave o nombre"
+        [ngModel]="termino"
+        (ngModelChange)="terminoChange.emit($event)"
+        (input)="limpiar.emit()"
+        (keyup.enter)="buscar.emit()"
+      />
+      <button class="btn btn-outline-primary" type="button" (click)="buscar.emit()" [disabled]="buscando">
+        {{ buscando ? 'Buscando...' : 'Buscar' }}
+      </button>
+    </div>
+
+    <div class="lista-resultados mb-3" *ngIf="productos.length > 0">
+      <div class="producto-item" *ngFor="let producto of productos; trackBy: trackByProducto">
+        <div class="producto-item-main">
+          <ng-container *ngIf="producto.imagen; else sinImagenBusqueda">
+            <img [src]="producto.imagen" [alt]="producto.value" class="producto-thumb" />
+          </ng-container>
+          <ng-template #sinImagenBusqueda>
+            <div class="producto-thumb-placeholder">Sin imagen</div>
+          </ng-template>
+
+          <div>
+            <div class="producto-label">{{ producto.value }}</div>
+            <div class="small text-muted">{{ producto.label }}</div>
+            <div class="small text-primary fw-semibold" *ngIf="producto.bbb === 1">
+              Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-sm btn-primary"
+          (click)="agregar.emit(producto)"
+          [disabled]="!clienteSeleccionado"
+        >
+          Agregar
+        </button>
+      </div>
+    </div>
+
+    <p *ngIf="error" class="text-danger small mb-0">{{ error }}</p>
+    <p *ngIf="info" class="text-success small mb-0">{{ info }}</p>
+    <p class="text-muted small mb-0">Selecciona "Agregar" para capturar la cantidad e incluir el producto en la cotizacion.</p>
+  </div>
+</div>

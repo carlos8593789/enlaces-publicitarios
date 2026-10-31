@@ -1,0 +1,14 @@
+.resumen-card {
+  border: 1px solid #dbe6ff;
+  background: #f8fbff;
+  border-radius: 0.5rem;
+  padding: 0.9rem;
+  position: sticky;
+  top: 0.75rem;
+}
+
+@media (max-width: 992px) {
+  .resumen-card {
+    position: static;
+  }
+}
