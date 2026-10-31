@@ -3,6 +3,20 @@
   [attr.inert]="creandoCotizacion ? '' : null"
   [attr.aria-busy]="creandoCotizacion ? 'true' : null"
 >
+  <nav
+    class="px-3 py-2 mb-3"
+    aria-label="breadcrumb"
+  >
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item fw-bold">
+        <a [href]="getUrlModuloCotizacion()">Cotizaciones</a>
+      </li>
+      <li class="breadcrumb-item active text-dark" aria-current="page">
+        {{ esEdicion ? 'Editar cotización' : 'Crear cotización' }}
+      </li>
+    </ol>
+  </nav>
+
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -275,9 +289,6 @@
                           <div class="small text-primary fw-semibold" *ngIf="linea.bbb === 1">
                             Producto de Línea BBB, no aplica cuota para vender desde 1 pza, stock en Monterrey.
                           </div>
-                          <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
-                            Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
-                          </div>
                           <div
                             class="small text-secondary"
                             *ngIf="linea.coloresSeleccionados?.length"
@@ -318,22 +329,36 @@
                     <td>
                       <div class="cantidad-display">{{ linea.cantidad }}</div>
                     </td>
-                    <td class="text-end">{{ getImporteLinea(linea) | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div>{{ getImporteLinea(linea) | currency: 'MXN' }}</div>
+                      <div class="small text-success" *ngIf="(linea.porcentajeDescuento ?? 0) > 0">
+                        Descuento: {{ linea.porcentajeDescuento }}%<span *ngIf="linea.notaDescuento"> - {{ linea.notaDescuento }}</span>
+                      </div>
+                    </td>
                     <td class="text-end">
                       <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
                         <button
                           type="button"
-                          class="btn btn-sm btn-outline-primary"
+                          class="btn btn-sm btn-warning text-white"
+                          aria-label="Editar producto"
+                          title="Editar producto"
                           (click)="actualizarCantidadDesdeModal(linea)"
                         >
-                          Editar
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
+                          </svg>
                         </button>
                         <button
                           type="button"
                           class="btn btn-sm btn-outline-danger"
+                          aria-label="Eliminar producto"
+                          title="Eliminar producto"
                           (click)="eliminarProducto(linea.id)"
                         >
-                          Quitar
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -359,9 +384,6 @@
                           <div class="small text-muted" *ngIf="(tecnica.cargoExtra ?? 0) > 0">
                             Cargo extra: {{ tecnica.cargoExtra | currency: 'MXN' }}
                           </div>
-                          <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
-                            Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
-                          </div>
                           <button
                             type="button"
                             class="btn-editar-colores ms-2 text-danger"
@@ -382,22 +404,36 @@
                     <td>
                       <div class="cantidad-display cantidad-display-tecnica">{{ tecnica.piezasSeleccionadas }}</div>
                     </td>
-                    <td class="text-end">{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</td>
+                    <td class="text-end">
+                      <div>{{ getTotalTecnica(tecnica) | currency: 'MXN' }}</div>
+                      <div class="small text-success" *ngIf="(tecnica.porcentajeDescuento ?? 0) > 0">
+                        Descuento: {{ tecnica.porcentajeDescuento }}%<span *ngIf="tecnica.notaDescuento"> - {{ tecnica.notaDescuento }}</span>
+                      </div>
+                    </td>
                     <td class="text-end">
                       <div class="d-flex justify-content-end gap-2 tecnica-row-actions">
                         <button
                           type="button"
-                          class="btn btn-sm btn-outline-primary"
+                          class="btn btn-sm btn-warning text-white"
+                          aria-label="Editar técnica"
+                          title="Editar técnica"
                           (click)="abrirModalEditarTecnicas(linea)"
                         >
-                          Editar
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M12.854.146a.5.5 0 0 1 .707 0l2.293 2.293a.5.5 0 0 1 0 .707l-9.5 9.5a.5.5 0 0 1-.168.11l-4 1.5a.5.5 0 0 1-.647-.647l1.5-4a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zM12.793 5.5 10.5 3.207l-7.5 7.5V13h2.293z"/>
+                          </svg>
                         </button>
                         <button
                           type="button"
                           class="btn btn-sm btn-outline-danger"
+                          aria-label="Eliminar técnica"
+                          title="Eliminar técnica"
                           (click)="eliminarTecnica(linea, tecnica)"
                         >
-                          Quitar
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1 0-2H5.5l.5-1h4l.5 1h3a1 1 0 0 1 1 1M4 4v9a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4z"/>
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -419,18 +455,27 @@
             <div>IVA ({{ ivaRate * 100 }}%): <strong>{{ iva | currency: 'MXN' }}</strong></div>
             <div class="fs-5 mt-1">TOTAL: <strong>{{ total | currency: 'MXN' }}</strong></div>
 
-            <button
-              type="button"
-              class="btn btn-success w-100 mt-3"
-              (click)="crearCotizacion()"
-              [disabled]="creandoCotizacion || cargandoCotizacion || lineasCotizacion.length === 0 || clienteId === null || (esEdicion && !hayCambiosCotizacion)"
-            >
-              {{
-                creandoCotizacion
-                  ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
-                  : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización' : 'Crear cotización'))
-              }}
-            </button>
+            <div class="d-flex gap-2 mt-3">
+              <button
+                type="button"
+                class="btn btn-success flex-grow-1"
+                (click)="crearCotizacion()"
+                [disabled]="creandoCotizacion || cargandoCotizacion || lineasCotizacion.length === 0 || clienteId === null || (esEdicion && !hayCambiosCotizacion)"
+              >
+                {{
+                  creandoCotizacion
+                    ? (esEdicion ? 'Guardando cambios...' : 'Creando cotizacion...')
+                    : (esEdicion ? (hayCambiosCotizacion ? 'Guardar cambios' : 'Sin cambios') : (esCopia ? 'Crear cotización' : 'Crear cotización'))
+                }}
+              </button>
+              <a
+                *ngIf="esEdicion || esCopia"
+                class="btn btn-outline-secondary"
+                [href]="getUrlModuloCotizacion()"
+              >
+                Regresar
+              </a>
+            </div>
 
             <p *ngIf="crearCotizacionError" class="text-danger small mt-2 mb-0">{{ crearCotizacionError }}</p>
             <p *ngIf="crearCotizacionExito" class="text-success small mt-2 mb-0">
@@ -440,13 +485,6 @@
                 [href]="getUrlDetalleCotizacion(idCotizacionCreada)"
               >
                 #{{ idCotizacionCreada }}
-              </a>
-              Ir al 
-              <a
-                *ngIf="idCotizacionCreada !== null"
-                [href]="getUrlModuloCotizacion()"
-              >
-              módulo de cotizaciones
               </a>
             </p>
           </div>
