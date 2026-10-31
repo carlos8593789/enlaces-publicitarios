@@ -20,7 +20,6 @@ export class ProductosBuscadorComponent {
   @Input() clienteSeleccionado = false;
 
   @Output() buscar = new EventEmitter<void>();
-  @Output() limpiar = new EventEmitter<void>();
   @Output() agregar = new EventEmitter<CotizacionProducto>();
 
   trackByProducto(_index: number, item: CotizacionProducto): number {

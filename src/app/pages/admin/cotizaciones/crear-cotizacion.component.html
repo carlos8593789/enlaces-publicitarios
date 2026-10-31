@@ -44,7 +44,8 @@
 
       <app-cliente-section
         [mostrarBuscador]="!esEdicion && !esCopia"
-        [(termino)]="terminoBusquedaCliente"
+        [termino]="terminoBusquedaCliente"
+        (terminoChange)="onTerminoClienteChange($event)"
         [buscando]="buscandoClientes"
         [clientes]="clientesEncontrados"
         [busquedaError]="clienteBusquedaError"
@@ -58,7 +59,6 @@
         [telefono]="clienteTelefono"
         [vendedorSugerido]="vendedorSugerido"
         (buscar)="buscarClientes()"
-        (limpiar)="limpiarBusquedaCliente()"
         (seleccionar)="seleccionarCliente($event)"
       ></app-cliente-section>
 
@@ -76,14 +76,14 @@
   </div>
 
   <app-productos-buscador
-    [(termino)]="terminoBusqueda"
+    [termino]="terminoBusqueda"
+    (terminoChange)="onTerminoProductoChange($event)"
     [buscando]="buscandoProductos"
     [productos]="productosEncontrados"
     [error]="productosError"
     [info]="busquedaInfo"
     [clienteSeleccionado]="clienteId !== null"
     (buscar)="buscarProductos()"
-    (limpiar)="limpiarResultadosBusqueda()"
     (agregar)="abrirModalCantidad($event)"
   ></app-productos-buscador>
 

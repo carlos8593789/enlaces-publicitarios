@@ -33,6 +33,5 @@ export class ClienteSectionComponent {
   @Input() vendedorSugerido: VendedorSugeridoItem | null = null;
 
   @Output() buscar = new EventEmitter<void>();
-  @Output() limpiar = new EventEmitter<void>();
   @Output() seleccionar = new EventEmitter<ClienteBusquedaItem>();
 }

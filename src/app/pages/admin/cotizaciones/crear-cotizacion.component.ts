@@ -1,8 +1,8 @@
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { Subscription, catchError, forkJoin, of } from 'rxjs';
 
 import {
   ClienteBusquedaItem,
@@ -101,7 +101,7 @@ import { ProductosBuscadorComponent } from './sections/productos-buscador.compon
   providers: [CotizacionLineasStore],
   templateUrl: './crear-cotizacion.component.html'
 })
-export class CrearCotizacionComponent implements OnInit {
+export class CrearCotizacionComponent implements OnInit, OnDestroy {
   private readonly clienteService = inject(ClienteService);
   private readonly condicionesVentaService = inject(CondicionesVentaService);
   private readonly productosService = inject(CotizacionProductosService);
@@ -274,7 +274,57 @@ export class CrearCotizacionComponent implements OnInit {
     this.condicionesVenta = condicion?.comentarios ?? '';
   }
 
+  private static readonly MIN_CARACTERES_BUSQUEDA = 2;
+  private static readonly RETRASO_BUSQUEDA_MS = 300;
+  private temporizadorBusquedaCliente?: ReturnType<typeof setTimeout>;
+  private temporizadorBusquedaProductos?: ReturnType<typeof setTimeout>;
+  private busquedaClienteSub?: Subscription;
+  private busquedaProductosSub?: Subscription;
+
+  ngOnDestroy(): void {
+    clearTimeout(this.temporizadorBusquedaCliente);
+    clearTimeout(this.temporizadorBusquedaProductos);
+    this.busquedaClienteSub?.unsubscribe();
+    this.busquedaProductosSub?.unsubscribe();
+  }
+
+  onTerminoClienteChange(termino: string): void {
+    this.terminoBusquedaCliente = termino;
+    clearTimeout(this.temporizadorBusquedaCliente);
+    this.busquedaClienteSub?.unsubscribe();
+    this.buscandoClientes = false;
+    this.limpiarBusquedaCliente();
+
+    if (termino.trim().length < CrearCotizacionComponent.MIN_CARACTERES_BUSQUEDA) {
+      return;
+    }
+
+    this.temporizadorBusquedaCliente = setTimeout(
+      () => this.buscarClientes(),
+      CrearCotizacionComponent.RETRASO_BUSQUEDA_MS
+    );
+  }
+
+  onTerminoProductoChange(termino: string): void {
+    this.terminoBusqueda = termino;
+    clearTimeout(this.temporizadorBusquedaProductos);
+    this.busquedaProductosSub?.unsubscribe();
+    this.buscandoProductos = false;
+    this.limpiarResultadosBusqueda();
+
+    if (termino.trim().length < CrearCotizacionComponent.MIN_CARACTERES_BUSQUEDA) {
+      return;
+    }
+
+    this.temporizadorBusquedaProductos = setTimeout(
+      () => this.buscarProductos(),
+      CrearCotizacionComponent.RETRASO_BUSQUEDA_MS
+    );
+  }
+
   buscarClientes(): void {
+    clearTimeout(this.temporizadorBusquedaCliente);
+    this.busquedaClienteSub?.unsubscribe();
     const term = this.terminoBusquedaCliente.trim();
     if (!term) {
       this.clienteBusquedaError = 'Escribe al menos un dato para buscar el cliente.';
@@ -288,7 +338,7 @@ export class CrearCotizacionComponent implements OnInit {
     this.clienteBusquedaInfo = '';
     this.clientesEncontrados = [];
 
-    this.clienteService.searchClientes(term).subscribe({
+    this.busquedaClienteSub = this.clienteService.searchClientes(term).subscribe({
       next: (clientes) => {
         if (clientes.length === 0) {
           this.clienteBusquedaError = 'No se encontraron clientes con ese criterio.';
@@ -583,6 +633,8 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   buscarProductos(): void {
+    clearTimeout(this.temporizadorBusquedaProductos);
+    this.busquedaProductosSub?.unsubscribe();
     const term = this.terminoBusqueda.trim();
     if (!term) {
       this.productosError = 'Escribe un producto para buscar.';
@@ -596,7 +648,7 @@ export class CrearCotizacionComponent implements OnInit {
     this.busquedaInfo = '';
     this.productosEncontrados = [];
 
-    this.productosService.searchProductos(term).subscribe({
+    this.busquedaProductosSub = this.productosService.searchProductos(term).subscribe({
       next: (response: ProductoBusquedaResponse) => {
         const productos = normalizarProductosBusqueda(response, this.terminoBusqueda);
         if (productos.length === 0) {

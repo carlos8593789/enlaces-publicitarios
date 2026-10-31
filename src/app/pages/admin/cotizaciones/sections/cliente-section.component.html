@@ -9,7 +9,6 @@
       placeholder="Buscar por nombre, telefono o correo"
       [ngModel]="termino"
       (ngModelChange)="terminoChange.emit($event)"
-      (input)="limpiar.emit()"
       (keyup.enter)="buscar.emit()"
     />
     <button class="btn btn-outline-primary" type="button" (click)="buscar.emit()" [disabled]="buscando">

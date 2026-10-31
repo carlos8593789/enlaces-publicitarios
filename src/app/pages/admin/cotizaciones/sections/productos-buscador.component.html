@@ -12,7 +12,6 @@
         placeholder="Buscar por clave o nombre"
         [ngModel]="termino"
         (ngModelChange)="terminoChange.emit($event)"
-        (input)="limpiar.emit()"
         (keyup.enter)="buscar.emit()"
       />
       <button class="btn btn-outline-primary" type="button" (click)="buscar.emit()" [disabled]="buscando">
