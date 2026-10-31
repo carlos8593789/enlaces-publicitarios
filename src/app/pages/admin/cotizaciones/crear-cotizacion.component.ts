@@ -60,6 +60,14 @@ import {
 } from './utils/cotizacion-calculos';
 import { formatearResumenTecnicasImpresion } from './utils/cotizacion-formato';
 import {
+  alternarTecnica,
+  crearInstanciaTecnica,
+  establecerColorTecnica,
+  establecerPiezasTecnica,
+  establecerPosicionesTecnica,
+  establecerTintasTecnica
+} from './utils/cotizacion-tecnicas';
+import {
   normalizarImagenProducto,
   normalizarPrecioProducto,
   normalizarPrecioTecnicaImpresion,
@@ -907,22 +915,12 @@ export class CrearCotizacionComponent implements OnInit {
   }
 
   alternarTecnicaImpresion(item: TecnicaImpresionSeleccion, seleccionada: boolean): void {
-    item.seleccionada = seleccionada;
-
-    if (seleccionada) {
-      const piezasRestantes = this.obtenerPiezasSinAsignarATecnicas();
-      item.piezasSeleccionadas =
-        piezasRestantes > 0 ? piezasRestantes : (this.productoPendienteAgregar?.cantidad ?? 1);
-      item.tintasSeleccionadas = item.cantidad_tintas > 0 ? Math.max(1, item.tintasSeleccionadas || 1) : 0;
-      item.posicionesSeleccionadas = item.cantidad_posiciones > 0 ? Math.max(1, item.posicionesSeleccionadas || 1) : 0;
-      return;
-    }
-
-    item.piezasSeleccionadas = 0;
-    item.tintasSeleccionadas = 0;
-    item.posicionesSeleccionadas = 0;
-    item.color = '';
-    item.nota = '';
+    const piezasRestantes = this.obtenerPiezasSinAsignarATecnicas();
+    alternarTecnica(
+      item,
+      seleccionada,
+      piezasRestantes > 0 ? piezasRestantes : (this.productoPendienteAgregar?.cantidad ?? 1)
+    );
   }
 
   agregarOtraTecnicaImpresion(item: TecnicaImpresionSeleccion): void {
@@ -936,23 +934,7 @@ export class CrearCotizacionComponent implements OnInit {
         ? piezasDisponibles
         : (item.piezasSeleccionadas > 0 ? item.piezasSeleccionadas : (this.productoPendienteAgregar?.cantidad ?? 1));
 
-    const nuevaInstancia: TecnicaImpresionSeleccion = {
-      ...item,
-      instanciaId: this.generarIdInstanciaTecnica(),
-      seleccionada: true,
-      piezasSeleccionadas: piezasIniciales,
-      tintasSeleccionadas: item.cantidad_tintas > 0 ? 1 : 0,
-      posicionesSeleccionadas: item.cantidad_posiciones > 0 ? 1 : 0,
-      color: '',
-      detalles: item.descripcion ?? '',
-      consideraciones: item.consideraciones ?? '',
-      nota: '',
-      precioUnitario: 0,
-      precioUnitarioBase: 0,
-      porcentajeDescuento: 0,
-      notaDescuento: '',
-      cargoExtra: 0
-    };
+    const nuevaInstancia = crearInstanciaTecnica(item, this.generarIdInstanciaTecnica(), piezasIniciales);
     const indice = this.tecnicasImpresionCatalogo.indexOf(item);
     this.tecnicasImpresionCatalogo.splice(indice + 1, 0, nuevaInstancia);
   }
@@ -961,28 +943,10 @@ export class CrearCotizacionComponent implements OnInit {
     this.tecnicasImpresionCatalogo = this.tecnicasImpresionCatalogo.filter((tecnica) => tecnica !== item);
   }
 
-  actualizarPiezasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
-    const cantidadNumerica = Number(cantidad);
-    item.piezasSeleccionadas = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
-  }
-
-  actualizarTintasTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
-    const maximo = Math.max(0, Math.floor(item.cantidad_tintas));
-    const cantidadNumerica = Number(cantidad);
-    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
-    item.tintasSeleccionadas = Math.min(cantidadValida, maximo);
-  }
-
-  actualizarPosicionesTecnica(item: TecnicaImpresionSeleccion, cantidad: number): void {
-    const maximo = Math.max(0, Math.floor(item.cantidad_posiciones));
-    const cantidadNumerica = Number(cantidad);
-    const cantidadValida = Number.isFinite(cantidadNumerica) ? Math.max(0, Math.floor(cantidadNumerica)) : 0;
-    item.posicionesSeleccionadas = Math.min(cantidadValida, maximo);
-  }
-
-  actualizarColorTecnica(item: TecnicaImpresionSeleccion, color: string): void {
-    item.color = typeof color === 'string' ? color : '';
-  }
+  actualizarPiezasTecnica = establecerPiezasTecnica;
+  actualizarTintasTecnica = establecerTintasTecnica;
+  actualizarPosicionesTecnica = establecerPosicionesTecnica;
+  actualizarColorTecnica = establecerColorTecnica;
 
   confirmarTecnicasSeleccionadas(): void {
     const pendiente = this.productoPendienteAgregar;
